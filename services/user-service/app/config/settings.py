@@ -1,12 +1,11 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from typing import List
 import os
 
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/userdb")
-
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:yahyasd56@localhost/User-service")
     # JWT
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
     JWT_ALGORITHM: str = "HS256"
@@ -32,4 +31,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
