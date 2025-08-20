@@ -3,19 +3,72 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 import uvicorn
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 
 from app.config.database import engine, Base, get_db
 from app.config.settings import settings
 from app.api.routes import auth, users, health
 from app.middleware.logging import LoggingMiddleware
 
+# IMPORTANT: Import all models here so they are registered with SQLAlchemy
+from app.models.user import User
+from app.models.auth import RefreshToken
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    Base.metadata.create_all(bind=engine)
+    print("🚀 Starting User Service...")
+
+    # Test database connection first
+    try:
+        print("🔌 Testing database connection...")
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT 1"))
+            print("✅ Database connection successful!")
+
+            # Check if database exists and show current tables
+            result = connection.execute(text("""
+                                             SELECT table_name
+                                             FROM information_schema.tables
+                                             WHERE table_schema = 'public'
+                                             """))
+            existing_tables = [row[0] for row in result.fetchall()]
+            print(f"📋 Existing tables: {existing_tables}")
+
+    except Exception as e:
+        print(f"❌ Database connection failed: {e}")
+        print(f"📍 Database URL: {settings.DATABASE_URL}")
+        # Don't exit, but show the error
+
+    # Create tables
+    try:
+        print("📊 Creating database tables...")
+        print(f"🔍 Models registered with Base: {list(Base.metadata.tables.keys())}")
+
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully!")
+
+        # Verify tables were created
+        with engine.connect() as connection:
+            result = connection.execute(text("""
+                                             SELECT table_name
+                                             FROM information_schema.tables
+                                             WHERE table_schema = 'public'
+                                             """))
+            tables_after = [row[0] for row in result.fetchall()]
+            print(f"📋 Tables after creation: {tables_after}")
+
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
+        import traceback
+        print(f"🔍 Full error: {traceback.format_exc()}")
+
     yield
+
     # Shutdown
+    print("🛑 Shutting down User Service...")
 
 
 app = FastAPI(
