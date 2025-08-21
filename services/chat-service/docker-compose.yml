@@ -11,15 +11,21 @@ services:
     volumes:
       - redis_data:/data
 
-  # DynamoDB Local - Simple in-memory version
+  # DynamoDB Local - In-memory (reliable but non-persistent)
   dynamodb-local:
     image: amazon/dynamodb-local:latest
     container_name: chat-dynamodb
     ports:
       - "8000:8000"
     command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  # DynamoDB Admin UI (Simple version)
+  # DynamoDB Admin UI
   dynamodb-admin:
     image: aaronshaf/dynamodb-admin
     container_name: chat-dynamodb-admin
@@ -28,7 +34,8 @@ services:
     environment:
       - DYNAMO_ENDPOINT=http://dynamodb-local:8000
     depends_on:
-      - dynamodb-local
+      dynamodb-local:
+        condition: service_healthy
 
 volumes:
   redis_data:
