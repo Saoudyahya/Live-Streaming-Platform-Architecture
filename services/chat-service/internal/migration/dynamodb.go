@@ -190,3 +190,52 @@ func (m *DynamoDBMigrator) waitForTableActive(tableName string) error {
 
 	return fmt.Errorf("table %s did not become active within timeout", tableName)
 }
+
+// Add this method to your DynamoDBMigrator struct in migration/dynamodb.go
+
+func (m *DynamoDBMigrator) ForceCleanup() error {
+	log.Println("🧹 Force cleaning up all tables...")
+
+	tables := []string{m.config.ChatroomTable, m.config.MessageTable}
+
+	for _, tableName := range tables {
+		log.Printf("Attempting to delete table: %s", tableName)
+
+		// Try to delete the table (ignore errors if table doesn't exist)
+		_, err := m.db.DeleteTable(&dynamodb.DeleteTableInput{
+			TableName: aws.String(tableName),
+		})
+
+		if err != nil {
+			log.Printf("Note: Could not delete table %s (might not exist): %v", tableName, err)
+		} else {
+			log.Printf("✅ Table %s deletion initiated", tableName)
+
+			// Wait for table to be deleted
+			log.Printf("Waiting for table %s to be fully deleted...", tableName)
+			err = m.db.WaitUntilTableNotExists(&dynamodb.DescribeTableInput{
+				TableName: aws.String(tableName),
+			})
+
+			if err != nil {
+				log.Printf("Warning: Error waiting for table %s deletion: %v", tableName, err)
+			} else {
+				log.Printf("✅ Table %s fully deleted", tableName)
+			}
+		}
+	}
+
+	log.Println("✅ Force cleanup completed!")
+	return nil
+}
+
+// Also add this method to always recreate tables
+func (m *DynamoDBMigrator) ForceCreateTables() error {
+	log.Println("🚀 Force creating tables (will recreate if they exist)...")
+
+	// First cleanup
+	m.ForceCleanup()
+
+	// Then create fresh tables
+	return m.CreateTables()
+}
