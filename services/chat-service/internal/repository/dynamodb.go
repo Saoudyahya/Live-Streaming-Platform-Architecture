@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -33,14 +34,25 @@ type dynamoDBRepository struct {
 }
 
 func NewDynamoDBRepository(cfg config.DynamoDBConfig) (DynamoDBRepository, error) {
-	sess, err := session.NewSession(&aws.Config{
+	awsConfig := &aws.Config{
 		Region: aws.String(cfg.Region),
-		Credentials: credentials.NewStaticCredentials(
+	}
+
+	// Add credentials if provided
+	if cfg.AccessKeyID != "" && cfg.SecretAccessKey != "" {
+		awsConfig.Credentials = credentials.NewStaticCredentials(
 			cfg.AccessKeyID,
 			cfg.SecretAccessKey,
 			"",
-		),
-	})
+		)
+	}
+
+	// Check for DynamoDB Local endpoint
+	if endpoint := os.Getenv("DYNAMODB_ENDPOINT"); endpoint != "" {
+		awsConfig.Endpoint = aws.String(endpoint)
+	}
+
+	sess, err := session.NewSession(awsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create AWS session: %w", err)
 	}
@@ -225,7 +237,7 @@ func (r *dynamoDBRepository) CreateMessage(ctx context.Context, message *models.
 
 func (r *dynamoDBRepository) GetMessages(ctx context.Context, chatroomID string, limit int, cursor string) ([]*models.Message, error) {
 	// This requires a GSI on chatroom_id sorted by created_at
-	// Simplified implementation
+	// For now, using a simplified scan approach
 	filterExpr := expression.Equal(expression.Name("chatroom_id"), expression.Value(chatroomID))
 	expr, err := expression.NewBuilder().WithFilter(filterExpr).Build()
 	if err != nil {
