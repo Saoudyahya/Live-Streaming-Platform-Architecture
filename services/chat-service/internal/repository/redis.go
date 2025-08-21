@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/yourcompany/chat-app/services/chat-service/internal/config"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/models"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/config"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/models"
 )
 
 type RedisRepository interface {
