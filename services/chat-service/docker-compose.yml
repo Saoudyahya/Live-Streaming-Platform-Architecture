@@ -1,39 +1,32 @@
-# Enhanced docker-compose.yml with DynamoDB Admin UI
-
 version: '3.8'
 
 services:
   # Redis for caching and session management
   redis:
     image: redis:7-alpine
+    container_name: chat-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
 
-  # DynamoDB Local
+  # DynamoDB Local - Simple in-memory version
   dynamodb-local:
     image: amazon/dynamodb-local:latest
-    container_name: dynamodb-local
+    container_name: chat-dynamodb
     ports:
       - "8000:8000"
-    volumes:
-      - "./dynamodb-data:/home/dynamodblocal/data"
-    working_dir: /home/dynamodblocal
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
 
-  # DynamoDB Admin - Web UI for DynamoDB
+  # DynamoDB Admin UI (Simple version)
   dynamodb-admin:
-    image: aaronshaf/dynamodb-admin:latest
-    container_name: dynamodb-admin
+    image: aaronshaf/dynamodb-admin
+    container_name: chat-dynamodb-admin
     ports:
-      - "8001:8001"  # DynamoDB Admin UI
+      - "8001:8001"
     environment:
       - DYNAMO_ENDPOINT=http://dynamodb-local:8000
-      - AWS_REGION=us-west-2
-      - AWS_ACCESS_KEY_ID=test-key
-      - AWS_SECRET_ACCESS_KEY=test-secret
     depends_on:
       - dynamodb-local
 
