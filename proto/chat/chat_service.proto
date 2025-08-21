@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package chat;
+option go_package = "github.com/yourcompany/chat-app/gen/chat";
+
+import "common/common.proto";
+import "common/timestamp.proto";
+
+service ChatService {
+  rpc CreateChatroom(CreateChatroomRequest) returns (CreateChatroomResponse);
+  rpc JoinChatroom(JoinChatroomRequest) returns (JoinChatroomResponse);
+  rpc LeaveChatroom(LeaveChatroomRequest) returns (LeaveChatroomResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+  rpc GetChatrooms(GetChatroomsRequest) returns (GetChatroomsResponse);
+}
+
+message CreateChatroomRequest {
+  string name = 1;
+  string description = 2;
+  string creator_id = 3;
+  bool is_private = 4;
+}
+
+message CreateChatroomResponse {
+  common.Status status = 1;
+  Chatroom chatroom = 2;
+}
+
+message JoinChatroomRequest {
+  string chatroom_id = 1;
+  string user_id = 2;
+}
+
+message JoinChatroomResponse {
+  common.Status status = 1;
+}
+
+message LeaveChatroomRequest {
+  string chatroom_id = 1;
+  string user_id = 2;
+}
+
+message LeaveChatroomResponse {
+  common.Status status = 1;
+}
+
+message SendMessageRequest {
+  string chatroom_id = 1;
+  string user_id = 2;
+  string content = 3;
+  MessageType type = 4;
+}
+
+message SendMessageResponse {
+  common.Status status = 1;
+  Message message = 2;
+}
+
+message GetMessagesRequest {
+  string chatroom_id = 1;
+  string user_id = 2;
+  int32 limit = 3;
+  string cursor = 4;
+}
+
+message GetMessagesResponse {
+  common.Status status = 1;
+  repeated Message messages = 2;
+  string next_cursor = 3;
+}
+
+message GetChatroomsRequest {
+  string user_id = 1;
+}
+
+message GetChatroomsResponse {
+  common.Status status = 1;
+  repeated Chatroom chatrooms = 2;
+}
+
+message Chatroom {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string creator_id = 4;
+  bool is_private = 5;
+  repeated string member_ids = 6;
+  common.Timestamp created_at = 7;
+  common.Timestamp updated_at = 8;
+}
+
+message Message {
+  string id = 1;
+  string chatroom_id = 2;
+  string user_id = 3;
+  string username = 4;
+  string content = 5;
+  MessageType type = 6;
+  common.Timestamp created_at = 7;
+  bool is_edited = 8;
+}
+
+enum MessageType {
+  TEXT = 0;
+  IMAGE = 1;
+  FILE = 2;
+  SYSTEM = 3;
+}

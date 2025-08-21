@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package common;
+option go_package = "github.com/yourcompany/chat-app/gen/common";
+
+message Status {
+  int32 code = 1;
+  string message = 2;
+  bool success = 3;
+}
