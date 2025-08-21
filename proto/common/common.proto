@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package common;
-option go_package = "github.com/yourcompany/chat-app/gen/common";
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common";
 
 message Status {
   int32 code = 1;
