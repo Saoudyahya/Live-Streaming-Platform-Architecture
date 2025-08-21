@@ -72,7 +72,8 @@ func (h *WebSocketHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reques
 		Rooms:    make(map[string]bool),
 	}
 
-	client.Hub.Register <- client
+	// Register client using the hub's method
+	h.hub.RegisterClient(client)
 
 	// Start goroutines for reading and writing
 	go client.WritePump()

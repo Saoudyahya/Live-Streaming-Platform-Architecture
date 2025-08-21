@@ -20,12 +20,12 @@ var upgrader = websocket.Upgrader{
 
 // Client represents a WebSocket client
 type Client struct {
-	conn     *websocket.Conn
-	send     chan []byte
-	hub      *Hub
-	userID   string
-	username string
-	rooms    map[string]bool
+	Conn     *websocket.Conn // Exported
+	Send     chan []byte     // Exported
+	Hub      *Hub            // Exported
+	UserID   string          // Exported
+	Username string          // Exported
+	Rooms    map[string]bool // Exported
 }
 
 // Hub maintains active WebSocket connections
@@ -71,8 +71,8 @@ func (h *Hub) Close() {
 	defer h.mutex.Unlock()
 
 	for client := range h.clients {
-		close(client.send)
-		client.conn.Close()
+		close(client.Send)
+		client.Conn.Close()
 	}
 }
 
@@ -81,7 +81,7 @@ func (h *Hub) registerClient(client *Client) {
 	defer h.mutex.Unlock()
 
 	h.clients[client] = true
-	log.Printf("Client registered: %s (%s)", client.username, client.userID)
+	log.Printf("Client registered: %s (%s)", client.Username, client.UserID)
 }
 
 func (h *Hub) unregisterClient(client *Client) {
@@ -90,10 +90,10 @@ func (h *Hub) unregisterClient(client *Client) {
 
 	if _, ok := h.clients[client]; ok {
 		delete(h.clients, client)
-		close(client.send)
+		close(client.Send)
 
 		// Remove from all rooms
-		for roomID := range client.rooms {
+		for roomID := range client.Rooms {
 			if room, exists := h.rooms[roomID]; exists {
 				delete(room, client)
 				if len(room) == 0 {
@@ -102,7 +102,7 @@ func (h *Hub) unregisterClient(client *Client) {
 			}
 		}
 
-		log.Printf("Client unregistered: %s (%s)", client.username, client.userID)
+		log.Printf("Client unregistered: %s (%s)", client.Username, client.UserID)
 	}
 }
 
@@ -112,9 +112,9 @@ func (h *Hub) broadcastMessage(message []byte) {
 
 	for client := range h.clients {
 		select {
-		case client.send <- message:
+		case client.Send <- message:
 		default:
-			close(client.send)
+			close(client.Send)
 			delete(h.clients, client)
 		}
 	}
@@ -130,9 +130,9 @@ func (h *Hub) JoinRoom(client *Client, roomID string) {
 	}
 
 	h.rooms[roomID][client] = true
-	client.rooms[roomID] = true
+	client.Rooms[roomID] = true
 
-	log.Printf("Client %s joined room %s", client.username, roomID)
+	log.Printf("Client %s joined room %s", client.Username, roomID)
 }
 
 // LeaveRoom removes a client from a specific chat room
@@ -147,9 +147,9 @@ func (h *Hub) LeaveRoom(client *Client, roomID string) {
 		}
 	}
 
-	delete(client.rooms, roomID)
+	delete(client.Rooms, roomID)
 
-	log.Printf("Client %s left room %s", client.username, roomID)
+	log.Printf("Client %s left room %s", client.Username, roomID)
 }
 
 // BroadcastToRoom sends a message to all clients in a specific room
@@ -160,9 +160,9 @@ func (h *Hub) BroadcastToRoom(roomID string, message []byte) {
 	if room, exists := h.rooms[roomID]; exists {
 		for client := range room {
 			select {
-			case client.send <- message:
+			case client.Send <- message:
 			default:
-				close(client.send)
+				close(client.Send)
 				delete(h.clients, client)
 				delete(room, client)
 			}
@@ -170,15 +170,30 @@ func (h *Hub) BroadcastToRoom(roomID string, message []byte) {
 	}
 }
 
-// readPump handles messages from the WebSocket connection
-func (c *Client) readPump() {
+// RegisterClient registers a new client with the hub
+func (h *Hub) RegisterClient(client *Client) {
+	h.register <- client
+}
+
+// UnregisterClient unregisters a client from the hub
+func (h *Hub) UnregisterClient(client *Client) {
+	h.unregister <- client
+}
+
+// Broadcast sends a message to all connected clients
+func (h *Hub) Broadcast(message []byte) {
+	h.broadcast <- message
+}
+
+// ReadPump handles messages from the WebSocket connection
+func (c *Client) ReadPump() {
 	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
+		c.Hub.UnregisterClient(c)
+		c.Conn.Close()
 	}()
 
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("WebSocket error: %v", err)
@@ -187,27 +202,27 @@ func (c *Client) readPump() {
 		}
 
 		// Handle incoming message
-		log.Printf("Received message from %s: %s", c.username, string(message))
+		log.Printf("Received message from %s: %s", c.Username, string(message))
 
 		// Echo message back to the room (simplified)
 		// In practice, you'd parse the message and handle different types
-		c.hub.broadcast <- message
+		c.Hub.Broadcast(message)
 	}
 }
 
-// writePump handles messages to the WebSocket connection
-func (c *Client) writePump() {
-	defer c.conn.Close()
+// WritePump handles messages to the WebSocket connection
+func (c *Client) WritePump() {
+	defer c.Conn.Close()
 
 	for {
 		select {
-		case message, ok := <-c.send:
+		case message, ok := <-c.Send:
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				log.Printf("WebSocket write error: %v", err)
 				return
 			}
