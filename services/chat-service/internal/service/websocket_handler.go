@@ -1,14 +1,13 @@
 package service
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 
-	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user"
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/server"
+	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/user"
 )
 
 type WebSocketHandler struct {

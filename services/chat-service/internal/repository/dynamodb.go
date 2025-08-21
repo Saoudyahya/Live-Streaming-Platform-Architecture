@@ -96,7 +96,7 @@ func (r *dynamoDBRepository) GetChatroom(ctx context.Context, chatroomID string)
 }
 
 func (r *dynamoDBRepository) AddMemberToChatroom(ctx context.Context, chatroomID, userID string) error {
-	updateExpr := expression.SET(expression.Name("member_ids"), expression.ListAppend(expression.Name("member_ids"), expression.Value([]string{userID})))
+	updateExpr := expression.Set(expression.Name("member_ids"), expression.ListAppend(expression.Name("member_ids"), expression.Value([]string{userID})))
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 	if err != nil {
 		return fmt.Errorf("failed to build update expression: %w", err)
@@ -135,7 +135,7 @@ func (r *dynamoDBRepository) RemoveMemberFromChatroom(ctx context.Context, chatr
 		}
 	}
 
-	updateExpr := expression.SET(expression.Name("member_ids"), expression.Value(updatedMembers))
+	updateExpr := expression.Set(expression.Name("member_ids"), expression.Value(updatedMembers))
 	expr, err := expression.NewBuilder().WithUpdate(updateExpr).Build()
 	if err != nil {
 		return fmt.Errorf("failed to build update expression: %w", err)

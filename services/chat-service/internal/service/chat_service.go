@@ -1,4 +1,3 @@
-// services/chat-service/internal/service/chat_service.go
 package service
 
 import (
@@ -9,13 +8,12 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
-	chatpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/chat"
-	commonpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
-	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user"
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/models"
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/repository"
+	chatpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/chat"
+	commonpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/common"
+	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/user"
 )
 
 type ChatService struct {
