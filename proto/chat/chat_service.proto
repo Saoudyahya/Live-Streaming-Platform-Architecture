@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package chat;
-option go_package = "github.com/yourcompany/chat-app/gen/chat";
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/chat";
 
 import "common/common.proto";
 import "common/timestamp.proto";

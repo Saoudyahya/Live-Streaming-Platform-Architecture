@@ -9,7 +9,7 @@ services:
       - "8080:8080"  
       - "1985:1985"
     volumes:
-      - ./config/srs-optimized.conf:/usr/local/srs/conf/srs.conf:ro
+      - ./config/srs.config:/usr/local/srs/conf/srs.conf:ro
       - ./hls:/usr/local/srs/objs/nginx/html/hls
       - ./recordings:/usr/local/srs/objs/nginx/html/recordings
     restart: unless-stopped
