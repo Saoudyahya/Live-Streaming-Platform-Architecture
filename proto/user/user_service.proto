@@ -1,0 +1,71 @@
+// proto/user/user_service.proto
+syntax = "proto3";
+
+package user;
+option go_package = "github.com/yourcompany/chat-app/gen/user";
+
+import "common/common.proto";
+import "common/timestamp.proto";
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
+  rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
+  rpc UpdateUserStatus(UpdateUserStatusRequest) returns (UpdateUserStatusResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  common.Status status = 1;
+  User user = 2;
+}
+
+message GetUsersRequest {
+  repeated string user_ids = 1;
+}
+
+message GetUsersResponse {
+  common.Status status = 1;
+  repeated User users = 2;
+}
+
+message ValidateUserRequest {
+  string user_id = 1;
+  string token = 2;
+}
+
+message ValidateUserResponse {
+  common.Status status = 1;
+  bool is_valid = 2;
+  User user = 3;
+}
+
+message UpdateUserStatusRequest {
+  string user_id = 1;
+  UserStatus status = 2;
+}
+
+message UpdateUserStatusResponse {
+  common.Status status = 1;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string display_name = 4;
+  string avatar_url = 5;
+  UserStatus status = 6;
+  common.Timestamp created_at = 7;
+  common.Timestamp last_seen = 8;
+}
+
+enum UserStatus {
+  OFFLINE = 0;
+  ONLINE = 1;
+  AWAY = 2;
+  BUSY = 3;
+}
