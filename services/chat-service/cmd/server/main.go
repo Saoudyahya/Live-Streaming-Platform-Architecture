@@ -16,12 +16,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	chatpb "github.com/yourcompany/chat-app/gen/chat"
-	userpb "github.com/yourcompany/chat-app/gen/user"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/config"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/repository"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/server"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/service"
+	chatpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/chat"
+	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/config"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/repository"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/server"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/service"
 )
 
 func main() {

@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	chatpb "github.com/yourcompany/chat-app/gen/chat"
-	commonpb "github.com/yourcompany/chat-app/gen/common"
-	userpb "github.com/yourcompany/chat-app/gen/user"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/models"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/repository"
+	chatpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/chat"
+	commonpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
+	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/models"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/repository"
 )
 
 type ChatService struct {

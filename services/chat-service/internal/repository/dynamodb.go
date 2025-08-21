@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 
-	"github.com/yourcompany/chat-app/services/chat-service/internal/config"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/models"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/config"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/models"
 )
 
 type DynamoDBRepository interface {

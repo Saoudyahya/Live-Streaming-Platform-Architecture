@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	userpb "github.com/yourcompany/chat-app/gen/user"
-	"github.com/yourcompany/chat-app/services/chat-service/internal/server"
+	userpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user"
+	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/internal/server"
 )
 
 type WebSocketHandler struct {
