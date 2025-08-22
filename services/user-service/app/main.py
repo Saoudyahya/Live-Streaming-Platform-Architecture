@@ -20,11 +20,12 @@ from app.models.auth import RefreshToken
 
 # Global gRPC server reference
 grpc_server = None
+grpc_port = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global grpc_server
+    global grpc_server, grpc_port
 
     # Startup
     print("🚀 Starting User Service...")
@@ -76,18 +77,26 @@ async def lifespan(app: FastAPI):
 
     # Start gRPC server in a separate thread
     print("🔧 Starting gRPC server...")
-    grpc_server = serve_grpc(port=8082)
+    try:
+        grpc_server = serve_grpc()  # Let it find a free port automatically
 
-    # Start gRPC server in background thread
-    def run_grpc():
-        try:
-            grpc_server.wait_for_termination()
-        except KeyboardInterrupt:
-            print("🛑 gRPC server interrupted")
+        # Start gRPC server in background thread
+        def run_grpc():
+            try:
+                grpc_server.wait_for_termination()
+            except KeyboardInterrupt:
+                print("🛑 gRPC server interrupted")
+            except Exception as e:
+                print(f"❌ gRPC server error: {e}")
 
-    grpc_thread = threading.Thread(target=run_grpc, daemon=True)
-    grpc_thread.start()
-    print("✅ gRPC server started on port 8082")
+        grpc_thread = threading.Thread(target=run_grpc, daemon=True)
+        grpc_thread.start()
+        print("✅ gRPC server started successfully")
+
+    except Exception as e:
+        print(f"❌ Failed to start gRPC server: {e}")
+        print("⚠️  Continuing without gRPC server...")
+        grpc_server = None
 
     yield
 
@@ -95,8 +104,11 @@ async def lifespan(app: FastAPI):
     print("🛑 Shutting down User Service...")
     if grpc_server:
         print("🛑 Stopping gRPC server...")
-        grpc_server.stop(grace=5)
-        print("✅ gRPC server stopped")
+        try:
+            grpc_server.stop(grace=5)
+            print("✅ gRPC server stopped")
+        except Exception as e:
+            print(f"❌ Error stopping gRPC server: {e}")
 
 
 app = FastAPI(
@@ -129,12 +141,49 @@ app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
 
 @app.get("/")
 async def root():
+    global grpc_server, grpc_port
+
+    grpc_status = "running" if grpc_server else "not available"
+
     return {
         "message": "User Service API",
         "version": "1.0.0",
         "services": {
             "rest_api": "http://localhost:8000",
-            "grpc": "localhost:8082"
+            "grpc": f"localhost:{grpc_port}" if grpc_port else "not available"
+        },
+        "status": {
+            "rest_api": "running",
+            "grpc": grpc_status
+        }
+    }
+
+
+@app.get("/api/v1/status")
+async def get_service_status():
+    """Get detailed service status"""
+    global grpc_server
+
+    # Test database connection
+    db_status = "unknown"
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+            db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+
+    return {
+        "service": "user-service",
+        "version": "1.0.0",
+        "status": {
+            "rest_api": "running",
+            "grpc_server": "running" if grpc_server else "not available",
+            "database": db_status
+        },
+        "endpoints": {
+            "rest_api": "http://localhost:8000",
+            "grpc": f"localhost:{grpc_port}" if grpc_port else "not available"
         }
     }
 
