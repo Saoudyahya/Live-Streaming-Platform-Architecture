@@ -2,7 +2,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from user import user_service_pb2 as user_dot_user__service__pb2
+from . import user_service_pb2 as user_dot_user__service__pb2
+
 
 
 class UserServiceStub(object):
