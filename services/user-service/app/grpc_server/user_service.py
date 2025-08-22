@@ -5,6 +5,9 @@ from concurrent import futures
 from sqlalchemy.orm import Session
 from datetime import datetime
 
+# Add reflection import
+from grpc_reflection.v1alpha import reflection
+
 from app.proto.user import user_service_pb2_grpc, user_service_pb2
 from app.proto.common import common_pb2, timestamp_pb2
 from app.config.database import SessionLocal
@@ -206,9 +209,19 @@ def find_free_port(start_port: int = 8082, max_port: int = 8092) -> int:
 
 
 def serve_grpc(port: int = None) -> grpc.Server:
-    """Start the gRPC server"""
+    """Start the gRPC server with reflection enabled"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    user_service_pb2_grpc.add_UserServiceServicer_to_server(UserServicer(), server)
+
+    # Add the UserService
+    user_service_servicer = UserServicer()
+    user_service_pb2_grpc.add_UserServiceServicer_to_server(user_service_servicer, server)
+
+    # Enable reflection
+    SERVICE_NAMES = (
+        user_service_pb2.DESCRIPTOR.services_by_name['UserService'].full_name,
+        reflection.SERVICE_NAME,
+    )
+    reflection.enable_server_reflection(SERVICE_NAMES, server)
 
     # Find a free port if the specified port is not available
     if port is None:
@@ -249,6 +262,6 @@ def serve_grpc(port: int = None) -> grpc.Server:
         raise RuntimeError("Failed to bind gRPC server to any address")
 
     server.start()
-    print(f"✅ gRPC server started and listening on port {actual_port}")
+    print(f"✅ gRPC server started with reflection enabled on port {actual_port}")
 
     return server
