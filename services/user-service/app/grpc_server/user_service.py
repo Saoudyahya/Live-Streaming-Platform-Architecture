@@ -1,5 +1,6 @@
 # services/user-service/app/grpc_server/user_service.py
 import grpc
+import socket
 from concurrent import futures
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -192,15 +193,62 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
             db.close()
 
 
-def serve_grpc(port: int = 8082):
+def find_free_port(start_port: int = 8082, max_port: int = 8092) -> int:
+    """Find a free port starting from start_port"""
+    for port in range(start_port, max_port):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('localhost', port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError(f"No free port found in range {start_port}-{max_port}")
+
+
+def serve_grpc(port: int = None) -> grpc.Server:
     """Start the gRPC server"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     user_service_pb2_grpc.add_UserServiceServicer_to_server(UserServicer(), server)
 
-    listen_addr = f'[::]:{port}'
-    server.add_insecure_port(listen_addr)
+    # Find a free port if the specified port is not available
+    if port is None:
+        port = find_free_port()
+
+    # Try different binding approaches
+    bind_addresses = [
+        f'localhost:{port}',  # Try localhost first
+        f'127.0.0.1:{port}',  # Try IPv4 explicitly
+        f'0.0.0.0:{port}',  # Try all interfaces
+    ]
+
+    bound = False
+    actual_port = port
+
+    for addr in bind_addresses:
+        try:
+            actual_port = server.add_insecure_port(addr)
+            print(f"🚀 gRPC server bound to {addr} (port {actual_port})")
+            bound = True
+            break
+        except RuntimeError as e:
+            print(f"❌ Failed to bind to {addr}: {e}")
+            continue
+
+    # If all specific addresses fail, try to find any free port
+    if not bound:
+        try:
+            free_port = find_free_port(8082, 8100)
+            actual_port = server.add_insecure_port(f'localhost:{free_port}')
+            print(f"🚀 gRPC server bound to localhost:{free_port} (port {actual_port})")
+            bound = True
+        except Exception as e:
+            print(f"❌ Failed to find any free port: {e}")
+            raise RuntimeError("Failed to start gRPC server - no available ports")
+
+    if not bound:
+        raise RuntimeError("Failed to bind gRPC server to any address")
 
     server.start()
-    print(f"🚀 gRPC server started on port {port}")
+    print(f"✅ gRPC server started and listening on port {actual_port}")
 
     return server
