@@ -1,7 +1,10 @@
+# services/user-service/app/main.py
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 import uvicorn
+import asyncio
+import threading
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 
@@ -9,14 +12,20 @@ from app.config.database import engine, Base, get_db
 from app.config.settings import settings
 from app.api.routes import auth, users, health
 from app.middleware.logging import LoggingMiddleware
+from app.grpc_server.user_service import serve_grpc
 
 # IMPORTANT: Import all models here so they are registered with SQLAlchemy
 from app.models.user import User
 from app.models.auth import RefreshToken
 
+# Global gRPC server reference
+grpc_server = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global grpc_server
+
     # Startup
     print("🚀 Starting User Service...")
 
@@ -65,15 +74,34 @@ async def lifespan(app: FastAPI):
         import traceback
         print(f"🔍 Full error: {traceback.format_exc()}")
 
+    # Start gRPC server in a separate thread
+    print("🔧 Starting gRPC server...")
+    grpc_server = serve_grpc(port=8082)
+
+    # Start gRPC server in background thread
+    def run_grpc():
+        try:
+            grpc_server.wait_for_termination()
+        except KeyboardInterrupt:
+            print("🛑 gRPC server interrupted")
+
+    grpc_thread = threading.Thread(target=run_grpc, daemon=True)
+    grpc_thread.start()
+    print("✅ gRPC server started on port 8082")
+
     yield
 
     # Shutdown
     print("🛑 Shutting down User Service...")
+    if grpc_server:
+        print("🛑 Stopping gRPC server...")
+        grpc_server.stop(grace=5)
+        print("✅ gRPC server stopped")
 
 
 app = FastAPI(
     title="User Service",
-    description="User management service with JWT authentication",
+    description="User management service with JWT authentication and gRPC",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -101,13 +129,25 @@ app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
 
 @app.get("/")
 async def root():
-    return {"message": "User Service API", "version": "1.0.0"}
+    return {
+        "message": "User Service API",
+        "version": "1.0.0",
+        "services": {
+            "rest_api": "http://localhost:8000",
+            "grpc": "localhost:8082"
+        }
+    }
 
 
-if __name__ == "__main__":
+def run_servers():
+    """Run both FastAPI and gRPC servers"""
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG
     )
+
+
+if __name__ == "__main__":
+    run_servers()
