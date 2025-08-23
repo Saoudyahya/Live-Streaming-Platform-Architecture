@@ -9,7 +9,7 @@
 package analytics
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1359,8 +1359,8 @@ const file_analytics_analytics_service_proto_rawDesc = "" +
 	"\x10GetUserAnalytics\x12\".analytics.GetUserAnalyticsRequest\x1a#.analytics.GetUserAnalyticsResponse\x12a\n" +
 	"\x12GetStreamAnalytics\x12$.analytics.GetStreamAnalyticsRequest\x1a%.analytics.GetStreamAnalyticsResponse\x12a\n" +
 	"\x12GetRecommendations\x12$.analytics.GetRecommendationsRequest\x1a%.analytics.GetRecommendationsResponse\x12a\n" +
-	"\x12GetPlatformMetrics\x12$.analytics.GetPlatformMetricsRequest\x1a%.analytics.GetPlatformMetricsResponseB\xd0\x01\n" +
-	"\rcom.analyticsB\x15AnalyticsServiceProtoP\x01Zdgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/analytics\xa2\x02\x03AXX\xaa\x02\tAnalytics\xca\x02\tAnalytics\xe2\x02\x15Analytics\\GPBMetadata\xea\x02\tAnalyticsb\x06proto3"
+	"\x12GetPlatformMetrics\x12$.analytics.GetPlatformMetricsRequest\x1a%.analytics.GetPlatformMetricsResponseB\xb4\x01\n" +
+	"\rcom.analyticsB\x15AnalyticsServiceProtoP\x01ZHgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/analytics\xa2\x02\x03AXX\xaa\x02\tAnalytics\xca\x02\tAnalytics\xe2\x02\x15Analytics\\GPBMetadata\xea\x02\tAnalyticsb\x06proto3"
 
 var (
 	file_analytics_analytics_service_proto_rawDescOnce sync.Once

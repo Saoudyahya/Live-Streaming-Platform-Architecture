@@ -1,0 +1,146 @@
+// proto/analytics/analytics_service.proto
+syntax = "proto3";
+
+package analytics;
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/analytics";
+
+import "common/common.proto";
+import "common/timestamp.proto";
+
+service AnalyticsService {
+  rpc TrackEvent(TrackEventRequest) returns (TrackEventResponse);
+  rpc GetUserAnalytics(GetUserAnalyticsRequest) returns (GetUserAnalyticsResponse);
+  rpc GetStreamAnalytics(GetStreamAnalyticsRequest) returns (GetStreamAnalyticsResponse);
+  rpc GetRecommendations(GetRecommendationsRequest) returns (GetRecommendationsResponse);
+  rpc GetPlatformMetrics(GetPlatformMetricsRequest) returns (GetPlatformMetricsResponse);
+}
+
+// Event tracking
+message TrackEventRequest {
+  string event_type = 1;
+  int64 user_id = 2;
+  string stream_id = 3;
+  map<string, string> properties = 4;
+  common.Timestamp timestamp = 5;
+  string session_id = 6;
+  string ip_address = 7;
+  string user_agent = 8;
+}
+
+message TrackEventResponse {
+  common.Status status = 1;
+  string event_id = 2;
+}
+
+// User analytics
+message GetUserAnalyticsRequest {
+  int64 user_id = 1;
+  common.Timestamp start_date = 2;
+  common.Timestamp end_date = 3;
+  repeated string metrics = 4;
+}
+
+message GetUserAnalyticsResponse {
+  common.Status status = 1;
+  UserAnalytics analytics = 2;
+}
+
+message UserAnalytics {
+  int64 user_id = 1;
+  int64 total_streams = 2;
+  int64 total_watch_time_minutes = 3;
+  int64 total_followers = 4;
+  int64 avg_viewers_per_stream = 5;
+  repeated DailyMetric daily_metrics = 6;
+}
+
+// Stream analytics
+message GetStreamAnalyticsRequest {
+  string stream_id = 1;
+  repeated string metrics = 2;
+}
+
+message GetStreamAnalyticsResponse {
+  common.Status status = 1;
+  StreamAnalytics analytics = 2;
+}
+
+message StreamAnalytics {
+  string stream_id = 1;
+  int64 total_viewers = 2;
+  int64 peak_viewers = 3;
+  int64 avg_watch_duration_minutes = 4;
+  int64 chat_messages = 5;
+  repeated ViewerMetric viewer_metrics = 6;
+  repeated GeographicMetric geographic_distribution = 7;
+}
+
+// Recommendations
+message GetRecommendationsRequest {
+  int64 user_id = 1;
+  string recommendation_type = 2;
+  int32 limit = 3;
+  map<string, string> context = 4;
+}
+
+message GetRecommendationsResponse {
+  common.Status status = 1;
+  repeated Recommendation recommendations = 2;
+}
+
+message Recommendation {
+  string type = 1;
+  string target_id = 2;
+  float confidence_score = 3;
+  string reason = 4;
+  map<string, string> metadata = 5;
+}
+
+// Platform metrics
+message GetPlatformMetricsRequest {
+  common.Timestamp start_date = 1;
+  common.Timestamp end_date = 2;
+  repeated string metrics = 3;
+}
+
+message GetPlatformMetricsResponse {
+  common.Status status = 1;
+  PlatformMetrics metrics = 2;
+}
+
+message PlatformMetrics {
+  int64 total_users = 1;
+  int64 active_users = 2;
+  int64 concurrent_streams = 3;
+  int64 total_watch_time_minutes = 4;
+  repeated DailyMetric daily_metrics = 5;
+  repeated TopStream top_streams = 6;
+}
+
+// Supporting data structures
+message DailyMetric {
+  string date = 1;
+  int64 value = 2;
+  string metric_name = 3;
+}
+
+message ViewerMetric {
+  common.Timestamp timestamp = 1;
+  int64 viewer_count = 2;
+}
+
+message GeographicMetric {
+  string country_code = 1;
+  string country_name = 2;
+  int64 viewer_count = 3;
+  float percentage = 4;
+}
+
+message TopStream {
+  string stream_id = 1;
+  string title = 2;
+  int64 user_id = 3;
+  string username = 4;
+  int64 peak_viewers = 5;
+  int64 duration_minutes = 6;
+}

@@ -1,15 +1,33 @@
+#version: v1
+#managed:
+#  enabled: true
+#  go_package_prefix:
+#    default: github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto
+#plugins:
+#  - plugin: buf.build/protocolbuffers/go
+#    out: ../services/chat-service/pkg/proto
+#    opt:
+#      - paths=source_relative
+#  - plugin: buf.build/grpc/go
+#    out: ../services/chat-service/pkg/proto
+#    opt:
+#      - paths=source_relative
+#      - require_unimplemented_servers=false
+#
+
 version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto
+    default: github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen
 plugins:
   - plugin: buf.build/protocolbuffers/go
-    out: ../services/chat-service/pkg/proto
+    out: ../services/stream-management-service/gen
     opt:
       - paths=source_relative
   - plugin: buf.build/grpc/go
-    out: ../services/chat-service/pkg/proto
+    out: ../services/stream-management-service/gen
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
+

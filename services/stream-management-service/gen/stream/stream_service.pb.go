@@ -9,7 +9,7 @@
 package stream
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1351,9 +1351,9 @@ const file_stream_stream_service_proto_rawDesc = "" +
 	"\tGetStream\x12\x18.stream.GetStreamRequest\x1a\x19.stream.GetStreamResponse\x12U\n" +
 	"\x10GetActiveStreams\x12\x1f.stream.GetActiveStreamsRequest\x1a .stream.GetActiveStreamsResponse\x12@\n" +
 	"\tEndStream\x12\x18.stream.EndStreamRequest\x1a\x19.stream.EndStreamResponse\x12[\n" +
-	"\x12RecordingCompleted\x12!.stream.RecordingCompletedRequest\x1a\".stream.RecordingCompletedResponseB\xbb\x01\n" +
+	"\x12RecordingCompleted\x12!.stream.RecordingCompletedRequest\x1a\".stream.RecordingCompletedResponseB\x9f\x01\n" +
 	"\n" +
-	"com.streamB\x12StreamServiceProtoP\x01Zagithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/chat-service/pkg/proto/stream\xa2\x02\x03SXX\xaa\x02\x06Stream\xca\x02\x06Stream\xe2\x02\x12Stream\\GPBMetadata\xea\x02\x06Streamb\x06proto3"
+	"com.streamB\x12StreamServiceProtoP\x01ZEgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/stream\xa2\x02\x03SXX\xaa\x02\x06Stream\xca\x02\x06Stream\xe2\x02\x12Stream\\GPBMetadata\xea\x02\x06Streamb\x06proto3"
 
 var (
 	file_stream_stream_service_proto_rawDescOnce sync.Once
