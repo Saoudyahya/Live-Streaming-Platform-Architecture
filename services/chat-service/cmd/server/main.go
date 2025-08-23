@@ -257,15 +257,21 @@ func main() {
 	log.Println("💬 Initializing chat service...")
 	chatService := service.NewChatService(dynamoRepo, redisRepo, userClient)
 
-	// Create gRPC server
-	log.Println("🔧 Setting up gRPC server...")
+	// Create gRPC server with enhanced setup
+	log.Println("🔧 Setting up gRPC server with reflection...")
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(server.LoggingInterceptor),
+		// Add any additional interceptors here if needed
+		grpc.MaxRecvMsgSize(4*1024*1024), // 4MB max message size
+		grpc.MaxSendMsgSize(4*1024*1024), // 4MB max message size
 	)
+
+	// Register the chat service
 	chatpb.RegisterChatServiceServer(grpcServer, chatService)
 
-	// Enable gRPC reflection for development
+	// IMPORTANT: Enable gRPC reflection for development and debugging
 	reflection.Register(grpcServer)
+	log.Println("✅ gRPC reflection enabled - Postman should now work!")
 
 	// Create WebSocket hub
 	log.Println("🌐 Setting up WebSocket hub...")
@@ -280,13 +286,18 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/ws", wsHandler.HandleWebSocket)
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		w.Write([]byte(`{"status": "healthy", "service": "chat-service", "grpc_reflection": "enabled"}`))
 	})
 
 	httpServer := &http.Server{
 		Addr:    cfg.Server.HTTPPort,
 		Handler: router,
+		// Add timeouts for better reliability
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	// Start servers
@@ -296,6 +307,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("❌ Failed to listen on gRPC port: %v", err)
 		}
+
+		log.Printf("✅ gRPC server listening on %s with reflection enabled", cfg.Server.GRPCPort)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("❌ Failed to serve gRPC: %v", err)
 		}
@@ -309,10 +322,11 @@ func main() {
 	}()
 
 	log.Println("✅ Chat service started successfully!")
-	log.Printf("📡 gRPC server: localhost%s", cfg.Server.GRPCPort)
+	log.Printf("📡 gRPC server: localhost%s (reflection enabled)", cfg.Server.GRPCPort)
 	log.Printf("🌐 HTTP server: localhost%s", cfg.Server.HTTPPort)
 	log.Printf("🔗 WebSocket: ws://localhost%s/ws", cfg.Server.HTTPPort)
 	log.Println("💡 Use Ctrl+C to gracefully shut down")
+	log.Println("🔍 Postman should now be able to load gRPC reflection!")
 
 	// Wait for interrupt signal to gracefully shutdown
 	quit := make(chan os.Signal, 1)
