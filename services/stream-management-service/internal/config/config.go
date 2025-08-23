@@ -34,11 +34,11 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		// Server
-		Port:        getEnv("PORT", "8080"),
+		Port:        getEnv("PORT", "8081"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 
 		// External Services
-		UserServiceGRPCAddr: getEnv("USER_SERVICE_GRPC_ADDR", "user-service:50051"),
+		UserServiceGRPCAddr: getEnv("USER_SERVICE_GRPC_ADDR", "user-service:8083"),
 
 		// AWS
 		AWSRegion:         getEnv("AWS_REGION", "us-east-1"),

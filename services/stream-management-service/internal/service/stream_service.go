@@ -2,8 +2,6 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	_ "log"
@@ -186,8 +184,8 @@ func (s *StreamService) PublishEvent(event map[string]interface{}) error {
 	return s.kinesisClient.PutRecord(string(eventJSON))
 }
 
-func (s *StreamService) generateStreamID() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
-}
+//func (s *StreamService) generateStreamID() string {
+//	bytes := make([]byte, 16)
+//	rand.Read(bytes)
+//	return hex.EncodeToString(bytes)
+//}

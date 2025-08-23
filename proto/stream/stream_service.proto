@@ -1,0 +1,147 @@
+// proto/stream/stream_service.proto
+syntax = "proto3";
+
+package stream;
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/stream";
+
+import "common/common.proto";
+import "common/timestamp.proto";
+
+service StreamService {
+  rpc ValidateStreamKey(ValidateStreamKeyRequest) returns (ValidateStreamKeyResponse);
+  rpc CreateStream(CreateStreamRequest) returns (CreateStreamResponse);
+  rpc UpdateStream(UpdateStreamRequest) returns (UpdateStreamResponse);
+  rpc GetStream(GetStreamRequest) returns (GetStreamResponse);
+  rpc GetActiveStreams(GetActiveStreamsRequest) returns (GetActiveStreamsResponse);
+  rpc EndStream(EndStreamRequest) returns (EndStreamResponse);
+  rpc RecordingCompleted(RecordingCompletedRequest) returns (RecordingCompletedResponse);
+}
+
+// Stream key validation (called by media server)
+message ValidateStreamKeyRequest {
+  string stream_key = 1;
+  string ip_address = 2;
+  string app_name = 3;
+}
+
+message ValidateStreamKeyResponse {
+  common.Status status = 1;
+  bool is_valid = 2;
+  int64 user_id = 3;
+  string username = 4;
+  StreamPermissions permissions = 5;
+}
+
+message StreamPermissions {
+  bool can_stream = 1;
+  bool can_record = 2;
+  int32 max_bitrate = 3;
+  int32 max_duration_minutes = 4;
+}
+
+// Stream management
+message CreateStreamRequest {
+  int64 user_id = 1;
+  string stream_key = 2;
+  string title = 3;
+  string description = 4;
+  StreamMetadata metadata = 5;
+}
+
+message CreateStreamResponse {
+  common.Status status = 1;
+  string stream_id = 2;
+  Stream stream = 3;
+}
+
+message UpdateStreamRequest {
+  string stream_id = 1;
+  StreamStatus status = 2;
+  StreamMetadata metadata = 3;
+  int64 viewer_count = 4;
+  int64 duration_seconds = 5;
+}
+
+message UpdateStreamResponse {
+  common.Status status = 1;
+  Stream stream = 2;
+}
+
+message GetStreamRequest {
+  string stream_id = 1;
+}
+
+message GetStreamResponse {
+  common.Status status = 1;
+  Stream stream = 2;
+}
+
+message GetActiveStreamsRequest {
+  int32 limit = 1;
+  string cursor = 2;
+}
+
+message GetActiveStreamsResponse {
+  common.Status status = 1;
+  repeated Stream streams = 2;
+  string next_cursor = 3;
+  int32 total_count = 4;
+}
+
+message EndStreamRequest {
+  string stream_id = 1;
+  int64 duration_seconds = 2;
+  string recording_path = 3;
+}
+
+message EndStreamResponse {
+  common.Status status = 1;
+}
+
+message RecordingCompletedRequest {
+  string stream_id = 1;
+  string recording_path = 2;
+  int64 file_size_bytes = 3;
+  int64 duration_seconds = 4;
+}
+
+message RecordingCompletedResponse {
+  common.Status status = 1;
+  string recording_url = 2;
+}
+
+// Data structures
+message Stream {
+  string id = 1;
+  int64 user_id = 2;
+  string stream_key = 3;
+  string title = 4;
+  string description = 5;
+  StreamStatus status = 6;
+  common.Timestamp started_at = 7;
+  common.Timestamp ended_at = 8;
+  int64 duration_seconds = 9;
+  int64 viewer_count = 10;
+  string recording_url = 11;
+  StreamMetadata metadata = 12;
+  common.Timestamp created_at = 13;
+  common.Timestamp updated_at = 14;
+}
+
+message StreamMetadata {
+  string resolution = 1;
+  int32 bitrate = 2;
+  int32 fps = 3;
+  string codec = 4;
+  string client_ip = 5;
+  string app_name = 6;
+  map<string, string> custom_data = 7;
+}
+
+enum StreamStatus {
+  STREAM_PENDING = 0;
+  STREAM_LIVE = 1;
+  STREAM_ENDED = 2;
+  STREAM_ERROR = 3;
+  STREAM_PAUSED = 4;
+}

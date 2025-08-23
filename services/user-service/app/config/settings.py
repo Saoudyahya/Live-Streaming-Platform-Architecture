@@ -5,9 +5,13 @@ import os
 
 class Settings(BaseSettings):
     # Database
+    # DATABASE_URL: str = os.getenv(
+    #     "DATABASE_URL",
+    #     "postgresql://postgres:zakaria@localhost:5432/User-service"
+    # )
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:yahyasd56@localhost:5432/User-service"
+        "postgresql+psycopg://postgres:zakaria@localhost:5432/User-service"
     )
     # JWTDATABASE_URL=postgresql://postgres:yahyasd56@database-1.curiyq4aismn.us-east-1.rds.amazonaws.com:5432/User-service
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")

@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 package common;
-option go_package = "github.com/yourcompany/chat-app/gen/common";
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/chat-app/gen/common";
 
 message Timestamp {
   int64 seconds = 1;
