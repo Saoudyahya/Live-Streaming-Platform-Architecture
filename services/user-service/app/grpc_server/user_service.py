@@ -88,20 +88,28 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
             db.close()
 
     def GetUsers(self, request, context):
-        """Get multiple users by IDs"""
+        """Get multiple users by IDs or all users if no IDs provided"""
         db = self._get_db()
         try:
             user_repo = UserRepository(db)
             users = []
 
-            for user_id_str in request.user_ids:
-                try:
-                    user_id = int(user_id_str)
-                    user = user_repo.get_user_by_id(user_id)
-                    if user:
-                        users.append(self._user_to_proto(user))
-                except ValueError:
-                    continue  # Skip invalid IDs
+            # If specific user IDs are provided, get those users
+            if request.user_ids:
+                for user_id_str in request.user_ids:
+                    try:
+                        user_id = int(user_id_str)
+                        user = user_repo.get_user_by_id(user_id)
+                        if user:
+                            users.append(self._user_to_proto(user))
+                    except ValueError:
+                        continue  # Skip invalid IDs
+            else:
+                # If no specific IDs provided, get all users (with pagination)
+                # You might want to add pagination parameters to the proto definition later
+                all_users = user_repo.get_users(skip=0, limit=100)  # Adjust limit as needed
+                for user in all_users:
+                    users.append(self._user_to_proto(user))
 
             return user_service_pb2.GetUsersResponse(
                 status=self._create_status(True, 200, "Users retrieved successfully"),
