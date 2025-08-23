@@ -125,12 +125,12 @@ func Load() *Config {
 		Environment: getEnv("ENVIRONMENT", "development"),
 
 		// External Services
-		UserServiceGRPCAddr: getEnv("USER_SERVICE_GRPC_ADDR", "user-service:8083"),
+		UserServiceGRPCAddr: getEnv("USER_SERVICE_GRPC_ADDR", "user-service:8082"),
 
 		// AWS / DynamoDB
 		AWSRegion:         getEnv("AWS_REGION", "us-east-1"),
 		DynamoDBTableName: getEnv("DYNAMODB_TABLE_NAME", "streams"),
-		DynamoDBEndpoint:  getEnv("DYNAMODB_ENDPOINT", "http://localhost:8000"), // Local DynamoDB
+		DynamoDBEndpoint:  getEnv("DYNAMODB_ENDPOINT", "http://localhost:8002"), // Local DynamoDB
 		KinesisStreamName: getEnv("KINESIS_STREAM_NAME", "stream-events"),
 		S3BucketName:      getEnv("S3_BUCKET_NAME", "stream-recordings"),
 

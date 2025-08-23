@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from app.config.database import engine, Base, get_db
 from app.config.settings import settings
-from app.api.routes import auth, users, health
+from app.api.routes import auth, users, health ,stream
 from app.middleware.logging import LoggingMiddleware
 from app.grpc_server.user_service import serve_grpc
 
@@ -137,6 +137,7 @@ security = HTTPBearer()
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(health.router, prefix="/api/v1/health", tags=["health"])
+app.include_router(stream.router, prefix="/api/v1/stream", tags=["streaming"])
 
 
 @app.get("/")
