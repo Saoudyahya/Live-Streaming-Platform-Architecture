@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 package stream;
-option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/stream";
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/stream";
 
 import "common/common.proto";
 import "common/timestamp.proto";

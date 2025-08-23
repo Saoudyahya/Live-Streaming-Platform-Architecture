@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	_ "strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -20,9 +19,8 @@ import (
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/internal/service"
 	grpcClient "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/pkg/grpc"
 
-	// Import the generated protobuf files (you'll need to generate these)
+	// Import the generated protobuf files
 	commonpb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
-	timestamppb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	streampb "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/stream"
 )
 
@@ -44,55 +42,85 @@ func NewStreamGRPCServer(cfg *config.Config, streamService *service.StreamServic
 func (s *StreamGRPCServer) ValidateStreamKey(ctx context.Context, req *streampb.ValidateStreamKeyRequest) (*streampb.ValidateStreamKeyResponse, error) {
 	log.Printf("🔑 gRPC ValidateStreamKey: %s from IP: %s", req.StreamKey, req.IpAddress)
 
-	// Validate with User Service
-	userReq := map[string]interface{}{
-		"stream_key": req.StreamKey,
-		"ip_address": req.IpAddress,
-	}
+	// Validate with User Service if available
+	if s.userClient != nil {
+		userReq := map[string]interface{}{
+			"stream_key": req.StreamKey,
+			"ip_address": req.IpAddress,
+		}
 
-	valid, userID, username, err := s.userClient.ValidateStreamKey(userReq)
-	if err != nil {
-		log.Printf("❌ Error validating stream key with User Service: %v", err)
+		valid, userID, username, err := s.userClient.ValidateStreamKey(userReq)
+		if err != nil {
+			log.Printf("❌ Error validating stream key with User Service: %v", err)
+			return &streampb.ValidateStreamKeyResponse{
+				Status: &commonpb.Status{
+					Code:    int32(codes.Internal),
+					Message: "Internal server error",
+					Success: false,
+				},
+				IsValid: false,
+			}, nil
+		}
+
+		if !valid {
+			log.Printf("❌ Invalid stream key: %s", req.StreamKey)
+			return &streampb.ValidateStreamKeyResponse{
+				Status: &commonpb.Status{
+					Code:    int32(codes.PermissionDenied),
+					Message: "Invalid stream key",
+					Success: false,
+				},
+				IsValid: false,
+			}, nil
+		}
+
+		log.Printf("✅ Stream key validated - User: %s (ID: %d)", username, userID)
+
 		return &streampb.ValidateStreamKeyResponse{
 			Status: &commonpb.Status{
-				Code:    int32(codes.Internal),
-				Message: "Internal server error",
-				Success: false,
+				Code:    int32(codes.OK),
+				Message: "Stream key validated successfully",
+				Success: true,
 			},
-			IsValid: false,
+			IsValid:  true,
+			UserId:   userID,
+			Username: username,
+			Permissions: &streampb.StreamPermissions{
+				CanStream:          true,
+				CanRecord:          true,
+				MaxBitrate:         8000, // 8 Mbps max
+				MaxDurationMinutes: 240,  // 4 hours max
+			},
 		}, nil
 	}
 
-	if !valid {
-		log.Printf("❌ Invalid stream key: %s", req.StreamKey)
+	// Fallback validation if no user client
+	if len(req.StreamKey) >= 8 {
 		return &streampb.ValidateStreamKeyResponse{
 			Status: &commonpb.Status{
-				Code:    int32(codes.PermissionDenied),
-				Message: "Invalid stream key",
-				Success: false,
+				Code:    int32(codes.OK),
+				Message: "Stream key validated successfully (fallback)",
+				Success: true,
 			},
-			IsValid: false,
+			IsValid:  true,
+			UserId:   123,
+			Username: "fallback_user",
+			Permissions: &streampb.StreamPermissions{
+				CanStream:          true,
+				CanRecord:          true,
+				MaxBitrate:         8000,
+				MaxDurationMinutes: 240,
+			},
 		}, nil
 	}
 
-	log.Printf("✅ Stream key validated - User: %s (ID: %d)", username, userID)
-
-	// Return successful validation with permissions
 	return &streampb.ValidateStreamKeyResponse{
 		Status: &commonpb.Status{
-			Code:    int32(codes.OK),
-			Message: "Stream key validated successfully",
-			Success: true,
+			Code:    int32(codes.PermissionDenied),
+			Message: "Invalid stream key",
+			Success: false,
 		},
-		IsValid:  true,
-		UserId:   userID,
-		Username: username,
-		Permissions: &streampb.StreamPermissions{
-			CanStream:          true,
-			CanRecord:          true,
-			MaxBitrate:         8000, // 8 Mbps max
-			MaxDurationMinutes: 240,  // 4 hours max
-		},
+		IsValid: false,
 	}, nil
 }
 
@@ -105,13 +133,24 @@ func (s *StreamGRPCServer) CreateStream(ctx context.Context, req *streampb.Creat
 		StreamKey: req.StreamKey,
 		Title:     req.Title,
 		Status:    models.StreamStatusLive,
-		Metadata: map[string]string{
-			"client_ip": req.Metadata.ClientIp,
-			"app_name":  req.Metadata.AppName,
-			"bitrate":   strconv.Itoa(int(req.Metadata.Bitrate)),
-		},
+		Metadata:  make(map[string]string),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
+	}
+
+	// Add metadata if provided
+	if req.Metadata != nil {
+		stream.Metadata["client_ip"] = req.Metadata.ClientIp
+		stream.Metadata["app_name"] = req.Metadata.AppName
+		if req.Metadata.Bitrate > 0 {
+			stream.Metadata["bitrate"] = strconv.Itoa(int(req.Metadata.Bitrate))
+		}
+		if req.Metadata.Resolution != "" {
+			stream.Metadata["resolution"] = req.Metadata.Resolution
+		}
+		if req.Metadata.Codec != "" {
+			stream.Metadata["codec"] = req.Metadata.Codec
+		}
 	}
 
 	now := time.Now()
@@ -142,70 +181,6 @@ func (s *StreamGRPCServer) CreateStream(ctx context.Context, req *streampb.Creat
 		},
 		StreamId: streamID,
 		Stream:   grpcStream,
-	}, nil
-}
-
-func (s *StreamGRPCServer) UpdateStream(ctx context.Context, req *streampb.UpdateStreamRequest) (*streampb.UpdateStreamResponse, error) {
-	log.Printf("📝 gRPC UpdateStream: %s", req.StreamId)
-
-	// Get existing stream
-	stream, err := s.streamService.GetStreamByIDInternal(req.StreamId)
-	if err != nil {
-		return &streampb.UpdateStreamResponse{
-			Status: &commonpb.Status{
-				Code:    int32(codes.NotFound),
-				Message: "Stream not found",
-				Success: false,
-			},
-		}, nil
-	}
-
-	// Update stream fields
-	if req.Status != streampb.StreamStatus_STREAM_PENDING {
-		stream.Status = s.grpcToModelStatus(req.Status)
-	}
-
-	if req.ViewerCount > 0 {
-		stream.ViewerCount = int(req.ViewerCount)
-	}
-
-	if req.DurationSeconds > 0 {
-		stream.Duration = req.DurationSeconds
-	}
-
-	if req.Metadata != nil {
-		if stream.Metadata == nil {
-			stream.Metadata = make(map[string]string)
-		}
-		if req.Metadata.ClientIp != "" {
-			stream.Metadata["client_ip"] = req.Metadata.ClientIp
-		}
-		if req.Metadata.Bitrate > 0 {
-			stream.Metadata["bitrate"] = strconv.Itoa(int(req.Metadata.Bitrate))
-		}
-	}
-
-	stream.UpdatedAt = time.Now()
-
-	// Update in database
-	err = s.streamService.UpdateStreamInternal(stream)
-	if err != nil {
-		return &streampb.UpdateStreamResponse{
-			Status: &commonpb.Status{
-				Code:    int32(codes.Internal),
-				Message: fmt.Sprintf("Failed to update stream: %v", err),
-				Success: false,
-			},
-		}, nil
-	}
-
-	return &streampb.UpdateStreamResponse{
-		Status: &commonpb.Status{
-			Code:    int32(codes.OK),
-			Message: "Stream updated successfully",
-			Success: true,
-		},
-		Stream: s.modelToGRPCStream(stream),
 	}, nil
 }
 
@@ -295,23 +270,62 @@ func (s *StreamGRPCServer) EndStream(ctx context.Context, req *streampb.EndStrea
 		}, nil
 	}
 
-	// Publish stream ended event
-	event := map[string]interface{}{
-		"event_type":   "stream_ended",
-		"stream_id":    stream.ID,
-		"user_id":      stream.UserID,
-		"duration":     req.DurationSeconds,
-		"timestamp":    time.Now().Unix(),
-		"viewer_count": stream.ViewerCount,
-	}
-	s.streamService.PublishEvent(event)
-
 	return &streampb.EndStreamResponse{
 		Status: &commonpb.Status{
 			Code:    int32(codes.OK),
 			Message: "Stream ended successfully",
 			Success: true,
 		},
+	}, nil
+}
+
+func (s *StreamGRPCServer) UpdateStream(ctx context.Context, req *streampb.UpdateStreamRequest) (*streampb.UpdateStreamResponse, error) {
+	log.Printf("📝 gRPC UpdateStream: %s", req.StreamId)
+
+	stream, err := s.streamService.GetStreamByIDInternal(req.StreamId)
+	if err != nil {
+		return &streampb.UpdateStreamResponse{
+			Status: &commonpb.Status{
+				Code:    int32(codes.NotFound),
+				Message: "Stream not found",
+				Success: false,
+			},
+		}, nil
+	}
+
+	// Update stream fields
+	if req.Status != streampb.StreamStatus_STREAM_PENDING {
+		stream.Status = s.grpcToModelStatus(req.Status)
+	}
+
+	if req.ViewerCount > 0 {
+		stream.ViewerCount = int(req.ViewerCount)
+	}
+
+	if req.DurationSeconds > 0 {
+		stream.Duration = req.DurationSeconds
+	}
+
+	stream.UpdatedAt = time.Now()
+
+	err = s.streamService.UpdateStreamInternal(stream)
+	if err != nil {
+		return &streampb.UpdateStreamResponse{
+			Status: &commonpb.Status{
+				Code:    int32(codes.Internal),
+				Message: fmt.Sprintf("Failed to update stream: %v", err),
+				Success: false,
+			},
+		}, nil
+	}
+
+	return &streampb.UpdateStreamResponse{
+		Status: &commonpb.Status{
+			Code:    int32(codes.OK),
+			Message: "Stream updated successfully",
+			Success: true,
+		},
+		Stream: s.modelToGRPCStream(stream),
 	}, nil
 }
 
@@ -351,48 +365,47 @@ func (s *StreamGRPCServer) RecordingCompleted(ctx context.Context, req *streampb
 		}, nil
 	}
 
-	// TODO: Upload to S3 and return public URL
-	recordingURL := req.RecordingPath
-
 	return &streampb.RecordingCompletedResponse{
 		Status: &commonpb.Status{
 			Code:    int32(codes.OK),
 			Message: "Recording info updated successfully",
 			Success: true,
 		},
-		RecordingUrl: recordingURL,
+		RecordingUrl: req.RecordingPath,
 	}, nil
 }
 
 // Helper functions
 func (s *StreamGRPCServer) modelToGRPCStream(stream *models.Stream) *streampb.Stream {
 	grpcStream := &streampb.Stream{
-		Id:           stream.ID,
-		UserId:       stream.UserID,
-		StreamKey:    stream.StreamKey,
-		Title:        stream.Title,
-		Status:       s.modelToGRPCStatus(stream.Status),
-		ViewerCount:  int64(stream.ViewerCount),
-		RecordingUrl: stream.RecordingURL,
-		CreatedAt: &timestamppb.Timestamp{
+		Id:              stream.ID,
+		UserId:          stream.UserID,
+		StreamKey:       stream.StreamKey,
+		Title:           stream.Title,
+		Description:     "", // Add if needed
+		Status:          s.modelToGRPCStatus(stream.Status),
+		DurationSeconds: stream.Duration,
+		ViewerCount:     int64(stream.ViewerCount),
+		RecordingUrl:    stream.RecordingURL,
+		CreatedAt: &commonpb.Timestamp{
 			Seconds: stream.CreatedAt.Unix(),
 			Nanos:   int32(stream.CreatedAt.Nanosecond()),
 		},
-		UpdatedAt: &timestamppb.Timestamp{
+		UpdatedAt: &commonpb.Timestamp{
 			Seconds: stream.UpdatedAt.Unix(),
 			Nanos:   int32(stream.UpdatedAt.Nanosecond()),
 		},
 	}
 
 	if stream.StartedAt != nil {
-		grpcStream.StartedAt = &timestamppb.Timestamp{
+		grpcStream.StartedAt = &commonpb.Timestamp{
 			Seconds: stream.StartedAt.Unix(),
 			Nanos:   int32(stream.StartedAt.Nanosecond()),
 		}
 	}
 
 	if stream.EndedAt != nil {
-		grpcStream.EndedAt = &timestamppb.Timestamp{
+		grpcStream.EndedAt = &commonpb.Timestamp{
 			Seconds: stream.EndedAt.Unix(),
 			Nanos:   int32(stream.EndedAt.Nanosecond()),
 		}
@@ -402,6 +415,8 @@ func (s *StreamGRPCServer) modelToGRPCStream(stream *models.Stream) *streampb.St
 		metadata := &streampb.StreamMetadata{
 			ClientIp:   stream.Metadata["client_ip"],
 			AppName:    stream.Metadata["app_name"],
+			Resolution: stream.Metadata["resolution"],
+			Codec:      stream.Metadata["codec"],
 			CustomData: stream.Metadata,
 		}
 
@@ -411,8 +426,6 @@ func (s *StreamGRPCServer) modelToGRPCStream(stream *models.Stream) *streampb.St
 
 		grpcStream.Metadata = metadata
 	}
-
-	grpcStream.DurationSeconds = stream.Duration
 
 	return grpcStream
 }
@@ -449,10 +462,11 @@ func (s *StreamGRPCServer) grpcToModelStatus(status streampb.StreamStatus) model
 
 // StartGRPCServer starts the gRPC server
 func StartGRPCServer(cfg *config.Config, streamService *service.StreamService, userClient *grpcClient.UserServiceClient) (*grpc.Server, error) {
-	// Create gRPC server
+	// Create gRPC server with middleware
 	server := grpc.NewServer(
 		grpc.MaxRecvMsgSize(4*1024*1024), // 4MB max message size
 		grpc.MaxSendMsgSize(4*1024*1024),
+		grpc.UnaryInterceptor(loggingInterceptor),
 	)
 
 	// Register stream service
@@ -462,7 +476,7 @@ func StartGRPCServer(cfg *config.Config, streamService *service.StreamService, u
 	// Enable reflection for grpcurl testing
 	reflection.Register(server)
 
-	// Find available port
+	// Find available port starting from 9090
 	port := 9090
 	var lis net.Listener
 	var err error
@@ -480,6 +494,7 @@ func StartGRPCServer(cfg *config.Config, streamService *service.StreamService, u
 
 	log.Printf("🚀 Starting gRPC server on port %d", port)
 
+	// Start server in goroutine
 	go func() {
 		if err := server.Serve(lis); err != nil {
 			log.Printf("❌ gRPC server failed: %v", err)
@@ -487,5 +502,25 @@ func StartGRPCServer(cfg *config.Config, streamService *service.StreamService, u
 	}()
 
 	log.Printf("✅ gRPC server started successfully on port %d", port)
+	log.Printf("🔧 Test with: grpcurl -plaintext localhost:%d list", port)
+
 	return server, nil
+}
+
+// Logging interceptor for gRPC requests
+func loggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	start := time.Now()
+
+	// Call the handler
+	resp, err := handler(ctx, req)
+
+	// Log the request
+	duration := time.Since(start)
+	if err != nil {
+		log.Printf("🔴 gRPC %s failed in %v: %v", info.FullMethod, duration, err)
+	} else {
+		log.Printf("✅ gRPC %s completed in %v", info.FullMethod, duration)
+	}
+
+	return resp, err
 }

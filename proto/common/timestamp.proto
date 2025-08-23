@@ -1,8 +1,18 @@
 // proto/common/timestamp.proto
+//syntax = "proto3";
+//
+//package common;
+//option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/chat-app/gen/common";
+//
+//message Timestamp {
+//  int64 seconds = 1;
+//  int32 nanos = 2;
+//}
+
 syntax = "proto3";
 
 package common;
-option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/chat-app/gen/common";
+option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common";
 
 message Timestamp {
   int64 seconds = 1;
