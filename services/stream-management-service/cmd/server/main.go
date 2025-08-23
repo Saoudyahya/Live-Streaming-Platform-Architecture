@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
 
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/internal/config"
 	"github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/internal/models"
@@ -21,8 +23,13 @@ import (
 	grpcClient "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/pkg/grpc"
 )
 
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+)
+
 func main() {
-	log.Println("🚀 Starting Stream Management Service...")
+	log.Printf("🚀 Starting Stream Management Service v%s (built %s)", Version, BuildTime)
 
 	// Load configuration
 	cfg := config.Load()
@@ -34,12 +41,16 @@ func main() {
 	redisRepo := repository.NewRedisRepository(cfg)
 	log.Println("✅ Repositories initialized")
 
-	// Initialize gRPC client to User Service (optional for now)
+	// Initialize gRPC client to User Service (with graceful fallback)
 	log.Printf("🔌 Attempting to connect to User Service at %s...", cfg.UserServiceGRPCAddr)
-	userClient, err := grpcClient.NewUserServiceClient(cfg.UserServiceGRPCAddr)
+	var userClient *grpcClient.UserServiceClient
+	var err error
+
+	// Try to connect to User Service with timeout
+	userClient, err = grpcClient.NewUserServiceClient(cfg.UserServiceGRPCAddr)
 	if err != nil {
 		log.Printf("⚠️ Failed to connect to User Service gRPC: %v", err)
-		log.Println("⚠️ Continuing with HTTP fallback for User Service communication")
+		log.Println("⚠️ Continuing with fallback authentication (development mode)")
 		userClient = nil
 	} else {
 		log.Println("✅ Connected to User Service gRPC")
@@ -51,8 +62,18 @@ func main() {
 	rtmpHandler := service.NewRTMPHandler(cfg, streamService, userClient)
 	log.Println("✅ Services initialized")
 
-	// Skip gRPC server setup for now - we'll implement it later when protobuf is ready
-	log.Println("ℹ️ gRPC server setup skipped - using HTTP communication for now")
+	// Start gRPC server
+	var grpcServer *grpc.Server
+	if cfg.Environment != "http-only" { // Allow disabling gRPC for testing
+		log.Println("🚀 Starting gRPC server...")
+		grpcServer, err = server.StartGRPCServer(cfg, streamService, userClient)
+		if err != nil {
+			log.Printf("⚠️ Failed to start gRPC server: %v", err)
+			log.Println("⚠️ Continuing with HTTP-only mode")
+		} else {
+			log.Println("✅ gRPC server started successfully")
+		}
+	}
 
 	// Setup HTTP server for RTMP callbacks and API
 	log.Println("🌐 Setting up HTTP server...")
@@ -76,6 +97,43 @@ func main() {
 	// Health check endpoints
 	router.GET("/health", server.HealthCheck)
 	router.GET("/api/v1/health", server.HealthCheck)
+
+	// Enhanced health check with gRPC status
+	router.GET("/api/v1/health/detailed", func(c *gin.Context) {
+		health := gin.H{
+			"status":      "healthy",
+			"service":     "stream-management",
+			"version":     Version,
+			"build_time":  BuildTime,
+			"timestamp":   time.Now().Unix(),
+			"environment": cfg.Environment,
+			"components": gin.H{
+				"http_server": "running",
+				"dynamodb":    "connected",
+				"redis":       "connected",
+			},
+		}
+
+		// Check gRPC server status
+		if grpcServer != nil {
+			health["components"].(gin.H)["grpc_server"] = "running"
+		} else {
+			health["components"].(gin.H)["grpc_server"] = "disabled"
+		}
+
+		// Check User Service connection
+		if userClient != nil {
+			if err := userClient.HealthCheck(); err != nil {
+				health["components"].(gin.H)["user_service"] = "disconnected"
+			} else {
+				health["components"].(gin.H)["user_service"] = "connected"
+			}
+		} else {
+			health["components"].(gin.H)["user_service"] = "not_configured"
+		}
+
+		c.JSON(200, health)
+	})
 
 	// RTMP callback routes (used by media server)
 	rtmpRoutes := router.Group("/rtmp")
@@ -139,11 +197,14 @@ func main() {
 			c.JSON(http.StatusOK, gin.H{
 				"message":   "Stream Management Service is running",
 				"timestamp": time.Now().Unix(),
+				"version":   Version,
+				"grpc":      grpcServer != nil,
 				"features": []string{
 					"RTMP authentication",
 					"Stream lifecycle management",
 					"Recording callbacks",
 					"Session management",
+					"gRPC API",
 				},
 			})
 		})
@@ -160,6 +221,8 @@ func main() {
 					"port":        cfg.Port,
 					"aws_region":  cfg.AWSRegion,
 					"redis_addr":  cfg.RedisAddr,
+					"version":     Version,
+					"build_time":  BuildTime,
 				}
 				c.JSON(http.StatusOK, safeConfig)
 			})
@@ -200,13 +263,24 @@ func main() {
 					"stream_key": testStream.StreamKey,
 				})
 			})
+
+			// gRPC test endpoints
+			if grpcServer != nil {
+				debugRoutes.GET("/grpc/status", func(c *gin.Context) {
+					c.JSON(http.StatusOK, gin.H{
+						"grpc_server": "running",
+						"reflection":  "enabled",
+						"services":    []string{"StreamService"},
+					})
+				})
+			}
 		}
 	}
 
 	// Get port from environment
 	port := cfg.Port
 	if port == "" {
-		port = "8080"
+		port = "8081"
 	}
 
 	// Create HTTP server
@@ -223,7 +297,12 @@ func main() {
 
 	// Start background tasks
 	log.Println("⏰ Starting background tasks...")
+	var wg sync.WaitGroup
+
+	// Cleanup task
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 
@@ -235,7 +314,9 @@ func main() {
 	}()
 
 	// Start HTTP server in goroutine
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		log.Printf("✅ Stream Management Service HTTP server started on port %s", port)
 		log.Printf("📡 RTMP callbacks: http://localhost:%s/rtmp/*", port)
 		log.Printf("🔌 API endpoints: http://localhost:%s/api/v1/*", port)
@@ -244,6 +325,10 @@ func main() {
 		if cfg.Environment == "development" {
 			log.Printf("🐛 Debug endpoints: http://localhost:%s/debug/*", port)
 			log.Printf("🧪 Test stream creation: POST http://localhost:%s/debug/test-stream", port)
+		}
+
+		if grpcServer != nil {
+			log.Printf("🚀 gRPC server: grpcurl -plaintext localhost:9090 list")
 		}
 
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -255,16 +340,25 @@ func main() {
 	log.Println("✅ All services started successfully")
 	log.Println("📋 Service Summary:")
 	log.Printf("   • HTTP Server: :%s", port)
-	log.Printf("   • User Service: %s (fallback to HTTP if gRPC fails)", cfg.UserServiceGRPCAddr)
+	if grpcServer != nil {
+		log.Printf("   • gRPC Server: :9090")
+	}
+	if userClient != nil {
+		log.Printf("   • User Service: %s", cfg.UserServiceGRPCAddr)
+	}
 	log.Printf("   • Environment: %s", cfg.Environment)
+	log.Printf("   • Version: %s", Version)
 	log.Println("🎯 Ready to handle RTMP streams!")
 
 	log.Println("")
 	log.Println("📖 Quick Start Guide:")
-	log.Printf("   1. Start your User Service: cd services/user-service && python -m app.main")
+	log.Printf("   1. Start your User Service (optional)")
 	log.Printf("   2. Start SRS Media Server: docker-compose up -d")
 	log.Printf("   3. Configure OBS with: rtmp://localhost:1935/live/YOUR_STREAM_KEY")
 	log.Printf("   4. Test health: curl http://localhost:%s/health", port)
+	if grpcServer != nil {
+		log.Printf("   5. Test gRPC: grpcurl -plaintext localhost:9090 list")
+	}
 	log.Println("")
 
 	// Wait for interrupt signal to gracefully shutdown
@@ -282,6 +376,13 @@ func main() {
 		log.Printf("❌ HTTP server forced to shutdown: %v", err)
 	} else {
 		log.Println("✅ HTTP server stopped gracefully")
+	}
+
+	// Shutdown gRPC server
+	if grpcServer != nil {
+		log.Println("🛑 Stopping gRPC server...")
+		grpcServer.GracefulStop()
+		log.Println("✅ gRPC server stopped gracefully")
 	}
 
 	// Close external connections

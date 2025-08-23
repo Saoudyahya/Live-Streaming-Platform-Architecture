@@ -9,13 +9,12 @@
 package user
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -629,8 +628,8 @@ const file_user_user_service_proto_rawDesc = "" +
 	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x15.user.GetUserResponse\x129\n" +
 	"\bGetUsers\x12\x15.user.GetUsersRequest\x1a\x16.user.GetUsersResponse\x12E\n" +
 	"\fValidateUser\x12\x19.user.ValidateUserRequest\x1a\x1a.user.ValidateUserResponse\x12Q\n" +
-	"\x10UpdateUserStatus\x12\x1d.user.UpdateUserStatusRequest\x1a\x1e.user.UpdateUserStatusResponseB\x91\x01\n" +
-	"\bcom.userB\x10UserServiceProtoP\x01ZCgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user\xa2\x02\x03UXX\xaa\x02\x04User\xca\x02\x04User\xe2\x02\x10User\\GPBMetadata\xea\x02\x04Userb\x06proto3"
+	"\x10UpdateUserStatus\x12\x1d.user.UpdateUserStatusRequest\x1a\x1e.user.UpdateUserStatusResponseB\xb4\x01\n" +
+	"\bcom.userB\x10UserServiceProtoP\x01Zfgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/user\xa2\x02\x03UXX\xaa\x02\x04User\xca\x02\x04User\xe2\x02\x10User\\GPBMetadata\xea\x02\x04Userb\x06proto3"
 
 var (
 	file_user_user_service_proto_rawDescOnce sync.Once
