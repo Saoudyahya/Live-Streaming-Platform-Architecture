@@ -1,5 +1,5 @@
 # services/user-service/app/grpc_server/user_service.py
-# ENHANCED VERSION - Added stream key validation method
+# FIXED VERSION - Added missing ValidateStreamKey method
 
 import grpc
 import socket
@@ -56,10 +56,10 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
         )
 
     def ValidateStreamKey(self, request, context):
-        """Validate a stream key and return user information - NEW METHOD"""
+        """FIXED: Now properly implements ValidateStreamKey method"""
         db = self._get_db()
         try:
-            print(f"🔑 gRPC ValidateStreamKey called: {request.stream_key} from IP: {request.ip_address}")
+            print(f"🔑 gRPC ValidateStreamKey called: {request.stream_key} from IP: {request.ip_address}, app: {request.app_name}")
 
             # Find user by stream key
             user = db.query(User).filter(User.stream_key == request.stream_key).first()
@@ -299,9 +299,9 @@ def serve_grpc(port: int = 8082) -> grpc.Server:
         raise RuntimeError(f"Failed to bind gRPC server to port {target_port}")
 
     server.start()
-    print("✅ User Service gRPC server started with reflection on port {actual_port}")
-    print("🔧 Test with: grpcurl -plaintext localhost:{actual_port} list")
-    print("🔧 Test stream key validation: grpcurl -plaintext -d '{\"stream_key\":\"your_key\",\"ip_address\":\"127.0.0.1\"}' localhost:{actual_port} user.UserService.ValidateStreamKey")
+    print(f"✅ User Service gRPC server started with reflection on port {actual_port}")
+    print(f"🔧 Test with: grpcurl -plaintext localhost:{actual_port} list")
+    print(f"🔧 Test stream key validation: grpcurl -plaintext -d '{{\"stream_key\":\"your_key\",\"ip_address\":\"127.0.0.1\",\"app_name\":\"live\"}}' localhost:{actual_port} user.UserService/ValidateStreamKey")
 
     # Store the port globally so main.py can access it
     global grpc_port

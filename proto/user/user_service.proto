@@ -2,7 +2,6 @@
 // UPDATED VERSION - Added ValidateStreamKey method
 
 syntax = "proto3";
-
 package user;
 
 option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user";
@@ -15,7 +14,6 @@ service UserService {
   rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
   rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
   rpc UpdateUserStatus(UpdateUserStatusRequest) returns (UpdateUserStatusResponse);
-
   // NEW: Stream key validation method
   rpc ValidateStreamKey(ValidateStreamKeyRequest) returns (ValidateStreamKeyResponse);
 }
