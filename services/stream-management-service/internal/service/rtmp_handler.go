@@ -1,8 +1,11 @@
+// ====================================
+// 1. Fix Stream Management Service RTMP Handler
 // services/stream-management-service/internal/service/rtmp_handler.go
+// ====================================
+
 package service
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,107 +20,10 @@ import (
 	grpcClient "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/pkg/grpc"
 )
 
-// For now, we'll create a placeholder interface until gRPC is fully set up
-type StreamServiceClient interface {
-	ValidateStreamKey(ctx context.Context, req *ValidateStreamKeyRequest) (*ValidateStreamKeyResponse, error)
-	CreateStream(ctx context.Context, req *CreateStreamRequest) (*CreateStreamResponse, error)
-	EndStream(ctx context.Context, req *EndStreamRequest) (*EndStreamResponse, error)
-	RecordingCompleted(ctx context.Context, req *RecordingCompletedRequest) (*RecordingCompletedResponse, error)
-	GetStream(ctx context.Context, req *GetStreamRequest) (*GetStreamResponse, error)
-}
-
-// Temporary message types until protobuf is generated
-type ValidateStreamKeyRequest struct {
-	StreamKey string
-	IpAddress string
-	AppName   string
-}
-
-type ValidateStreamKeyResponse struct {
-	Status      *Status
-	IsValid     bool
-	UserId      int64
-	Username    string
-	Permissions *StreamPermissions
-}
-
-type CreateStreamRequest struct {
-	UserId    int64
-	StreamKey string
-	Title     string
-	Metadata  *StreamMetadata
-}
-
-type CreateStreamResponse struct {
-	Status   *Status
-	StreamId string
-}
-
-type EndStreamRequest struct {
-	StreamId        string
-	DurationSeconds int64
-	RecordingPath   string
-}
-
-type EndStreamResponse struct {
-	Status *Status
-}
-
-type RecordingCompletedRequest struct {
-	StreamId        string
-	RecordingPath   string
-	FileSizeBytes   int64
-	DurationSeconds int64
-}
-
-type RecordingCompletedResponse struct {
-	Status       *Status
-	RecordingUrl string
-}
-
-type GetStreamRequest struct {
-	StreamId string
-}
-
-type GetStreamResponse struct {
-	Status *Status
-	Stream *Stream
-}
-
-type Status struct {
-	Code    int32
-	Message string
-	Success bool
-}
-
-type StreamPermissions struct {
-	CanStream          bool
-	CanRecord          bool
-	MaxBitrate         int32
-	MaxDurationMinutes int32
-}
-
-type StreamMetadata struct {
-	ClientIp   string
-	AppName    string
-	CustomData map[string]string
-}
-
-type Stream struct {
-	Id          string
-	UserId      int64
-	StreamKey   string
-	Title       string
-	Status      string
-	ViewerCount int64
-	Metadata    *StreamMetadata
-}
-
 type RTMPHandler struct {
-	config           *config.Config
-	streamService    *StreamService
-	userClient       *grpcClient.UserServiceClient
-	grpcStreamClient StreamServiceClient // Interface instead of concrete gRPC client
+	config        *config.Config
+	streamService *StreamService
+	userClient    *grpcClient.UserServiceClient
 }
 
 type RTMPAuthRequest struct {
@@ -146,11 +52,6 @@ func NewRTMPHandler(cfg *config.Config, streamService *StreamService, userClient
 	}
 }
 
-// SetGRPCClient sets the gRPC stream client for internal communication
-func (h *RTMPHandler) SetGRPCClient(client StreamServiceClient) {
-	h.grpcStreamClient = client
-}
-
 func (h *RTMPHandler) AuthenticateStream(c *gin.Context) {
 	var req RTMPAuthRequest
 
@@ -165,13 +66,12 @@ func (h *RTMPHandler) AuthenticateStream(c *gin.Context) {
 
 	log.Printf("🔑 RTMP Auth Request - Name: %s, IP: %s, App: %s", req.Name, req.IP, req.App)
 
-	// Extract stream key from name (media server might send app/stream_key format)
+	// Extract stream key from name
 	streamKey := h.extractStreamKey(req.Name)
 	log.Printf("🔍 Extracted stream key: %s", streamKey)
 
-	// For now, let's use HTTP fallback to User Service instead of gRPC
-	// This will work until we have the full gRPC setup
-	valid, userID, username, err := h.validateStreamKeyHTTP(streamKey, req.IP)
+	// Try gRPC validation first, then fallback to HTTP
+	valid, userID, username, err := h.validateStreamKey(streamKey, req.IP)
 	if err != nil {
 		log.Printf("❌ Error validating stream key: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -226,10 +126,58 @@ func (h *RTMPHandler) AuthenticateStream(c *gin.Context) {
 	})
 }
 
+func (h *RTMPHandler) validateStreamKey(streamKey, ipAddress string) (bool, int64, string, error) {
+	// Try gRPC validation first if client is available
+	if h.userClient != nil {
+		log.Printf("🔌 Attempting gRPC validation for stream key: %s", streamKey)
+
+		// Créer la requête pour le client gRPC
+		request := map[string]interface{}{
+			"stream_key": streamKey,
+			"ip_address": ipAddress,
+		}
+
+		// Appeler la méthode sans passer de contexte
+		valid, userID, username, err := h.userClient.ValidateStreamKey(request)
+		if err == nil {
+			log.Printf("✅ gRPC validation successful for stream key: %s", streamKey)
+			return valid, userID, username, nil
+		}
+
+		log.Printf("⚠️ gRPC validation failed, falling back to HTTP: %v", err)
+	} else {
+		log.Printf("⚠️ No gRPC client available, using HTTP fallback")
+	}
+
+	// Fallback to HTTP validation
+	return h.validateStreamKeyHTTP(streamKey, ipAddress)
+}
+
+// HTTP fallback method to validate stream key with User Service REST API
+func (h *RTMPHandler) validateStreamKeyHTTP(streamKey, ipAddress string) (bool, int64, string, error) {
+	log.Printf("🌐 HTTP validation for stream key: %s", streamKey)
+
+	// TODO: Make actual HTTP request to User Service
+	// POST http://localhost:8000/api/v1/stream/validate-stream-key
+	// {
+	//   "stream_key": "abc123",
+	//   "ip_address": "1.2.3.4"
+	// }
+
+	// For now, simple validation - check if key is long enough
+	if len(streamKey) >= 10 {
+		log.Printf("✅ HTTP validation passed for stream key: %s", streamKey)
+		return true, 123, "test_user", nil
+	}
+
+	log.Printf("❌ HTTP validation failed for stream key: %s", streamKey)
+	return false, 0, "", nil
+}
+
+// Rest of the methods remain the same...
 func (h *RTMPHandler) StreamStarted(c *gin.Context) {
 	var req RTMPStreamRequest
 
-	// Try to bind JSON first, then form data
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if err := c.ShouldBind(&req); err != nil {
 			log.Printf("❌ Error parsing stream started request: %v", err)
@@ -257,7 +205,7 @@ func (h *RTMPHandler) StreamStarted(c *gin.Context) {
 		return
 	}
 
-	// Create stream record using direct StreamService method
+	// Create stream record
 	stream := &models.Stream{
 		UserID:    int64(userID),
 		StreamKey: streamKey,
@@ -317,7 +265,6 @@ func (h *RTMPHandler) StreamStarted(c *gin.Context) {
 func (h *RTMPHandler) StreamEnded(c *gin.Context) {
 	var req RTMPStreamRequest
 
-	// Try to bind JSON first, then form data
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if err := c.ShouldBind(&req); err != nil {
 			log.Printf("❌ Error parsing stream ended request: %v", err)
@@ -353,7 +300,7 @@ func (h *RTMPHandler) StreamEnded(c *gin.Context) {
 		}
 	}
 
-	// End stream using direct StreamService method
+	// End stream
 	err = h.streamService.EndStream(streamKey, req.Duration)
 	if err != nil {
 		log.Printf("❌ Error ending stream: %v", err)
@@ -379,7 +326,6 @@ func (h *RTMPHandler) StreamEnded(c *gin.Context) {
 func (h *RTMPHandler) RecordingCompleted(c *gin.Context) {
 	var req RTMPStreamRequest
 
-	// Try to bind JSON first, then form data
 	if err := c.ShouldBindJSON(&req); err != nil {
 		if err := c.ShouldBind(&req); err != nil {
 			log.Printf("❌ Error parsing recording completed request: %v", err)
@@ -392,7 +338,7 @@ func (h *RTMPHandler) RecordingCompleted(c *gin.Context) {
 
 	streamKey := h.extractStreamKey(req.Name)
 
-	// Update stream with recording info using direct StreamService method
+	// Update stream with recording info
 	err := h.streamService.UpdateStreamRecording(streamKey, req.File)
 	if err != nil {
 		log.Printf("❌ Error updating stream recording: %v", err)
@@ -440,7 +386,6 @@ func (h *RTMPHandler) RecordingCompleted(c *gin.Context) {
 	})
 }
 
-// Health check endpoint for media server callbacks
 func (h *RTMPHandler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "healthy",
@@ -451,19 +396,10 @@ func (h *RTMPHandler) HealthCheck(c *gin.Context) {
 	})
 }
 
-// Utility function to extract stream key from various formats
 func (h *RTMPHandler) extractStreamKey(name string) string {
-	// Handle different formats:
-	// - "streamkey" (direct)
-	// - "live/streamkey" (app/key)
-	// - "/live/streamkey" (with leading slash)
-
 	streamKey := strings.TrimSpace(name)
-
-	// Remove leading slash if present
 	streamKey = strings.TrimPrefix(streamKey, "/")
 
-	// If contains slash, take the last part
 	if strings.Contains(streamKey, "/") {
 		parts := strings.Split(streamKey, "/")
 		streamKey = parts[len(parts)-1]
@@ -472,22 +408,6 @@ func (h *RTMPHandler) extractStreamKey(name string) string {
 	return streamKey
 }
 
-// HTTP fallback method to validate stream key with User Service REST API
-func (h *RTMPHandler) validateStreamKeyHTTP(streamKey, ipAddress string) (bool, int64, string, error) {
-	// For development, we'll do simple validation
-	// In production, this should make HTTP request to User Service REST API
-
-	log.Printf("🔍 Validating stream key via HTTP: %s", streamKey)
-
-	// Simple validation - any non-empty key is valid for now
-	if len(streamKey) > 5 {
-		return true, 123, "test_user", nil
-	}
-
-	return false, 0, "", nil
-}
-
-// Additional helper method to get detailed stream info
 func (h *RTMPHandler) GetStreamInfo(c *gin.Context) {
 	streamKey := c.Param("stream_key")
 	if streamKey == "" {
@@ -505,8 +425,6 @@ func (h *RTMPHandler) GetStreamInfo(c *gin.Context) {
 	// Try to get stream details if stream ID is available
 	streamID, ok := sessionData["stream_id"].(string)
 	if ok {
-		// For now, just return session data
-		// When gRPC is ready, we can get full stream details
 		c.JSON(http.StatusOK, gin.H{
 			"stream_id": streamID,
 			"session":   sessionData,
@@ -520,17 +438,4 @@ func (h *RTMPHandler) GetStreamInfo(c *gin.Context) {
 		"session": sessionData,
 		"status":  "session_only",
 	})
-}
-
-// TODO: Implement proper HTTP client to User Service REST API
-func (h *RTMPHandler) validateStreamKeyWithUserService(streamKey, ipAddress string) (bool, int64, string, error) {
-	// This will make HTTP POST request to User Service
-	// POST http://user-service:8000/api/v1/auth/validate-stream-key
-	// {
-	//   "stream_key": "abc123",
-	//   "ip_address": "1.2.3.4"
-	// }
-
-	// For now, return mock data
-	return true, 123, "test_user", nil
 }

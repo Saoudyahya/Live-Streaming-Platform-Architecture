@@ -27,6 +27,38 @@
             border-radius: 8px;
             color: white;
         }
+        .stream-input {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #555;
+        }
+        .stream-input input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #666;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .stream-input button {
+            margin-top: 10px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #ff4444;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .stream-input button:hover {
+            background: #ff6666;
+            transform: scale(1.05);
+        }
         .latency-display {
             display: flex;
             justify-content: space-around;
@@ -99,6 +131,15 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        .current-stream {
+            background: #002a44;
+            border: 1px solid #0066cc;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +147,18 @@
         <div class="header">
             <h1>🚀 ULTRA LOW LATENCY STREAMING</h1>
             <p>Target: &lt;1 second delay | Real-time streaming</p>
+        </div>
+
+        <div class="stream-input">
+            <label for="streamKey"><strong>🔑 Enter Stream Key:</strong></label>
+            <input type="text" id="streamKey" placeholder="Enter your stream key here (e.g., GBJ7VdV5m67tIIKhA5a_Nk7Ws--MN_mr69MeW4ila5o)"
+                   value="GBJ7VdV5m67tIIKhA5a_Nk7Ws--MN_mr69MeW4ila5o">
+            <button onclick="connectToStream()">🚀 Connect to Stream</button>
+        </div>
+
+        <div id="currentStream" class="current-stream" style="display: none;">
+            <strong>📡 Current Stream:</strong> <span id="currentStreamKey">--</span><br>
+            <strong>📺 HLS URL:</strong> <span id="currentHlsUrl">--</span>
         </div>
 
         <div class="latency-display">
@@ -129,7 +182,7 @@
         <video id="player" controls muted autoplay playsinline></video>
 
         <div id="status" class="status connecting">
-            <span id="statusText">🔄 Initializing ultra low latency player...</span>
+            <span id="statusText">🔄 Enter a stream key to start watching...</span>
         </div>
 
         <div class="ultra-buttons">
@@ -156,6 +209,7 @@
         let currentMode = 'hls';
         let latencyMonitor;
         let reconnectAttempts = 0;
+        let currentStreamKey = '';
 
         function log(message) {
             const debugEl = document.getElementById('debug');
@@ -182,7 +236,35 @@
             else latencyEl.style.color = '#ff4444';
         }
 
+        function connectToStream() {
+            const streamKeyInput = document.getElementById('streamKey');
+            const streamKey = streamKeyInput.value.trim();
+
+            if (!streamKey) {
+                alert('Please enter a stream key!');
+                return;
+            }
+
+            currentStreamKey = streamKey;
+
+            // Update UI
+            document.getElementById('currentStreamKey').textContent = streamKey;
+            document.getElementById('currentHlsUrl').textContent = `http://localhost:8080/live/${streamKey}.m3u8`;
+            document.getElementById('currentStream').style.display = 'block';
+
+            log(`🔑 Setting stream key: ${streamKey}`);
+
+            // Start streaming
+            startUltraHLS();
+        }
+
         function startUltraHLS() {
+            if (!currentStreamKey) {
+                log('❌ No stream key set - please enter a stream key first');
+                updateStatus('❌ No stream key set', 'error');
+                return;
+            }
+
             log('🔥 Starting Ultra Low Latency HLS...');
             currentMode = 'hls';
 
@@ -191,8 +273,9 @@
                 video.hls.destroy();
             }
 
-            // Use cache-busting URL
-            const hlsUrl = `http://localhost:8080/live/test.m3u8?ultra=${Date.now()}`;
+            // Use dynamic stream key with cache-busting URL
+            const hlsUrl = `http://localhost:8080/live/${currentStreamKey}.m3u8?ultra=${Date.now()}`;
+            log(`📺 HLS URL: ${hlsUrl}`);
 
             if (Hls.isSupported()) {
                 const hls = new Hls({
@@ -230,10 +313,13 @@
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     log(`❌ HLS Error: ${data.type} - ${data.details}`);
                     if (data.fatal) {
+                        if (data.details === 'manifestLoadError') {
+                            updateStatus(`❌ Stream not found - check if streaming to key: ${currentStreamKey}`, 'error');
+                        }
                         setTimeout(() => {
                             log('🔄 Auto-recovering from fatal error...');
                             startUltraHLS();
-                        }, 1000);
+                        }, 3000);
                     }
                 });
 
@@ -250,7 +336,7 @@
             currentMode = 'webrtc';
 
             // WebRTC URL (requires WebRTC-enabled SRS)
-            const webrtcUrl = 'webrtc://localhost:8000/live/test';
+            const webrtcUrl = `webrtc://localhost:8000/live/${currentStreamKey}`;
 
             // This would require a WebRTC player library
             // For now, show how to implement it
@@ -364,7 +450,7 @@
         script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest';
         script.onload = () => {
             log('🚀 Ultra low latency player ready');
-            startUltraHLS();
+            updateStatus('🔑 Enter your stream key and click Connect to Stream', 'connecting');
         };
         document.head.appendChild(script);
 
@@ -379,6 +465,13 @@
             }
             video.lastTimeUpdate = Date.now();
         }, 5000);
+
+        // Allow Enter key to connect
+        document.getElementById('streamKey').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                connectToStream();
+            }
+        });
     </script>
 </body>
 </html>

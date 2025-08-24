@@ -1,10 +1,18 @@
+// ====================================
+// 2. Updated gRPC Client for Stream Key Validation
 // services/stream-management-service/pkg/grpc/clients.go
+// ====================================
+
 package grpc
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"google.golang.org/grpc"
@@ -15,8 +23,9 @@ import (
 )
 
 type UserServiceClient struct {
-	conn   *grpc.ClientConn
-	client userpb.UserServiceClient
+	conn    *grpc.ClientConn
+	client  userpb.UserServiceClient
+	httpURL string // Fallback HTTP URL
 }
 
 func NewUserServiceClient(address string) (*UserServiceClient, error) {
@@ -35,39 +44,42 @@ func NewUserServiceClient(address string) (*UserServiceClient, error) {
 			PermitWithoutStream: true,
 		}),
 	)
+
+	var client userpb.UserServiceClient
+	var httpURL string
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to User Service: %w", err)
-	}
-
-	client := userpb.NewUserServiceClient(conn)
-
-	// Test connection
-	testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer testCancel()
-
-	testReq := &userpb.GetUserRequest{UserId: "test"}
-	_, err = client.GetUser(testCtx, testReq)
-	if err != nil {
-		log.Printf("⚠️ User Service connection test failed (this is OK if service isn't running): %v", err)
-		// Don't fail here - the service might not be running yet
+		log.Printf("⚠️ gRPC connection failed: %v", err)
+		log.Printf("🌐 Will use HTTP fallback to User Service")
+		httpURL = "http://localhost:8000" // User Service REST API
+		client = nil
 	} else {
-		log.Printf("✅ User Service connection test successful")
+		client = userpb.NewUserServiceClient(conn)
+
+		// Test connection
+		testCtx, testCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer testCancel()
+
+		testReq := &userpb.GetUserRequest{UserId: "test"}
+		_, err = client.GetUser(testCtx, testReq)
+		if err != nil {
+			log.Printf("⚠️ User Service gRPC test failed: %v", err)
+			log.Printf("🌐 Will use HTTP fallback for validation")
+			httpURL = "http://localhost:8000"
+		} else {
+			log.Printf("✅ User Service gRPC connection test successful")
+		}
 	}
 
 	return &UserServiceClient{
-		conn:   conn,
-		client: client,
+		conn:    conn,
+		client:  client,
+		httpURL: httpURL,
 	}, nil
 }
 
+// ValidateStreamKey tries gRPC first, then HTTP fallback
 func (c *UserServiceClient) ValidateStreamKey(request map[string]interface{}) (bool, int64, string, error) {
-	if c.client == nil {
-		return false, 0, "", fmt.Errorf("client not initialized")
-	}
-
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	// Extract stream key and IP from request
 	streamKey, ok := request["stream_key"].(string)
 	if !ok {
 		return false, 0, "", fmt.Errorf("invalid stream_key in request")
@@ -75,22 +87,119 @@ func (c *UserServiceClient) ValidateStreamKey(request map[string]interface{}) (b
 
 	ipAddress, _ := request["ip_address"].(string)
 
-	// For now, we'll simulate validation since User Service might not be fully implemented
-	// In production, this would make a real gRPC call to validate the stream key
-
 	log.Printf("🔍 Validating stream key: %s from IP: %s", streamKey, ipAddress)
 
-	// Simple validation - stream key must be at least 8 characters
-	if len(streamKey) >= 8 {
-		return true, 123, "test_user", nil
+	// Try gRPC first if client is available
+	if c.client != nil {
+		valid, userID, username, err := c.validateStreamKeyGRPC(streamKey, ipAddress)
+		if err == nil {
+			log.Printf("✅ gRPC validation successful for stream key: %s", streamKey)
+			return valid, userID, username, nil
+		}
+		log.Printf("⚠️ gRPC validation failed, trying HTTP fallback: %v", err)
 	}
 
-	return false, 0, "", fmt.Errorf("invalid stream key")
+	// Fallback to HTTP
+	return c.validateStreamKeyHTTP(streamKey, ipAddress)
+}
+
+// validateStreamKeyGRPC validates using gRPC to User Service
+func (c *UserServiceClient) validateStreamKeyGRPC(streamKey, ipAddress string) (bool, int64, string, error) {
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
+
+	// For now, we don't have a direct stream key validation gRPC method
+	// We can simulate by trying to find a user, or implement the method in User Service
+	// This is a placeholder that should be replaced with actual gRPC stream key validation
+
+	log.Printf("🔌 Attempting gRPC stream key validation: %s", streamKey)
+
+	// TODO: Implement proper gRPC stream key validation method in User Service
+	// For now, return error to fall back to HTTP
+	return false, 0, "", fmt.Errorf("gRPC stream key validation not yet implemented")
+}
+
+// validateStreamKeyHTTP validates using HTTP REST API to User Service
+func (c *UserServiceClient) validateStreamKeyHTTP(streamKey, ipAddress string) (bool, int64, string, error) {
+	log.Printf("🌐 HTTP validation for stream key: %s", streamKey)
+
+	if c.httpURL == "" {
+		return false, 0, "", fmt.Errorf("no HTTP URL configured")
+	}
+
+	// Create request payload
+	payload := map[string]string{
+		"stream_key": streamKey,
+		"ip_address": ipAddress,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return false, 0, "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Make HTTP request to User Service
+	url := c.httpURL + "/api/v1/stream/validate-stream-key"
+	log.Printf("📡 Making HTTP request to: %s", url)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return false, 0, "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("❌ HTTP request failed: %v", err)
+		return false, 0, "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, 0, "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	log.Printf("📨 HTTP response status: %d, body: %s", resp.StatusCode, string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("❌ HTTP validation failed with status: %d", resp.StatusCode)
+		return false, 0, "", fmt.Errorf("HTTP validation failed with status: %d", resp.StatusCode)
+	}
+
+	// Parse response
+	var response struct {
+		Valid    bool   `json:"valid"`
+		UserID   int64  `json:"user_id"`
+		Username string `json:"username"`
+		Message  string `json:"message"`
+	}
+
+	if err := json.Unmarshal(body, &response); err != nil {
+		log.Printf("❌ Failed to parse HTTP response: %v", err)
+		return false, 0, "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if response.Valid {
+		log.Printf("✅ HTTP validation successful - User: %s (ID: %d)", response.Username, response.UserID)
+		return true, response.UserID, response.Username, nil
+	} else {
+		log.Printf("❌ HTTP validation failed: %s", response.Message)
+		return false, 0, "", nil // Not an error, just invalid
+	}
 }
 
 func (c *UserServiceClient) GetUser(userID string) (*userpb.User, error) {
 	if c.client == nil {
-		return nil, fmt.Errorf("client not initialized")
+		return nil, fmt.Errorf("gRPC client not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -114,7 +223,7 @@ func (c *UserServiceClient) GetUser(userID string) (*userpb.User, error) {
 
 func (c *UserServiceClient) ValidateUser(userID, token string) (bool, *userpb.User, error) {
 	if c.client == nil {
-		return false, nil, fmt.Errorf("client not initialized")
+		return false, nil, fmt.Errorf("gRPC client not available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -143,7 +252,21 @@ func (c *UserServiceClient) Close() error {
 // Health check method
 func (c *UserServiceClient) HealthCheck() error {
 	if c.client == nil {
-		return fmt.Errorf("client not initialized")
+		// Try HTTP health check
+		if c.httpURL != "" {
+			url := c.httpURL + "/api/v1/health/"
+			resp, err := http.Get(url)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode == http.StatusOK {
+				return nil
+			}
+			return fmt.Errorf("HTTP health check failed with status: %d", resp.StatusCode)
+		}
+		return fmt.Errorf("no client available")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -154,6 +277,5 @@ func (c *UserServiceClient) HealthCheck() error {
 	_, err := c.client.GetUser(ctx, req)
 
 	// We don't care about the response, just that the connection works
-	// The service might return "not found" but that's OK for health check
 	return err
 }
