@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.config.database import get_db
+import traceback
 
 router = APIRouter()
 
@@ -14,8 +15,24 @@ async def health_check():
 @router.get("/db")
 async def database_health(db: Session = Depends(get_db)):
     try:
-        db.execute(text("SELECT 1"))
-        return {"status": "healthy", "database": "connected"}
-    except Exception as e:
-        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+        # Simple query to test database connectivity
+        result = db.execute(text("SELECT 1 as test"))
+        row = result.fetchone()
 
+        if row and row[0] == 1:
+            return {"status": "healthy", "database": "connected"}
+        else:
+            return {
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": "Query did not return expected result"
+            }
+    except Exception as e:
+        print(f"Database health check error: {e}")
+        print(f"Error traceback: {traceback.format_exc()}")
+
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
