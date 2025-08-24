@@ -1,12 +1,16 @@
 #EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-MEDIA-SEQUENCE:4
 #EXT-X-TARGETDURATION:12
-#EXT-X-DISCONTINUITY
-#EXTINF:2.059, no desc
-cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-0.ts
-#EXT-X-DISCONTINUITY
-#EXTINF:11.999, no desc
-cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-1.ts
 #EXTINF:12.000, no desc
-cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-2.ts
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-4.ts
+#EXTINF:12.000, no desc
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-5.ts
+#EXTINF:12.000, no desc
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-6.ts
+#EXTINF:12.000, no desc
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-7.ts
+#EXTINF:12.000, no desc
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-8.ts
+#EXTINF:12.000, no desc
+cCJ-XUxQ8nHtD-FonqifVshSYe2Jm8kIux-4iuuqhzs-9.ts
