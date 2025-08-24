@@ -9,7 +9,8 @@
 package analytics
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
+	common1 "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -127,7 +128,7 @@ func (x *TrackEventRequest) GetUserAgent() string {
 
 type TrackEventResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status        *common1.Status        `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	EventId       string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -163,7 +164,7 @@ func (*TrackEventResponse) Descriptor() ([]byte, []int) {
 	return file_analytics_analytics_service_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *TrackEventResponse) GetStatus() *common.Status {
+func (x *TrackEventResponse) GetStatus() *common1.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -248,7 +249,7 @@ func (x *GetUserAnalyticsRequest) GetMetrics() []string {
 
 type GetUserAnalyticsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status        *common1.Status        `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Analytics     *UserAnalytics         `protobuf:"bytes,2,opt,name=analytics,proto3" json:"analytics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -284,7 +285,7 @@ func (*GetUserAnalyticsResponse) Descriptor() ([]byte, []int) {
 	return file_analytics_analytics_service_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetUserAnalyticsResponse) GetStatus() *common.Status {
+func (x *GetUserAnalyticsResponse) GetStatus() *common1.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -437,7 +438,7 @@ func (x *GetStreamAnalyticsRequest) GetMetrics() []string {
 
 type GetStreamAnalyticsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status        *common1.Status        `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Analytics     *StreamAnalytics       `protobuf:"bytes,2,opt,name=analytics,proto3" json:"analytics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -473,7 +474,7 @@ func (*GetStreamAnalyticsResponse) Descriptor() ([]byte, []int) {
 	return file_analytics_analytics_service_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetStreamAnalyticsResponse) GetStatus() *common.Status {
+func (x *GetStreamAnalyticsResponse) GetStatus() *common1.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -650,7 +651,7 @@ func (x *GetRecommendationsRequest) GetContext() map[string]string {
 
 type GetRecommendationsResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Status          *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status          *common1.Status        `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Recommendations []*Recommendation      `protobuf:"bytes,2,rep,name=recommendations,proto3" json:"recommendations,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -686,7 +687,7 @@ func (*GetRecommendationsResponse) Descriptor() ([]byte, []int) {
 	return file_analytics_analytics_service_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *GetRecommendationsResponse) GetStatus() *common.Status {
+func (x *GetRecommendationsResponse) GetStatus() *common1.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -839,7 +840,7 @@ func (x *GetPlatformMetricsRequest) GetMetrics() []string {
 
 type GetPlatformMetricsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Status        *common1.Status        `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Metrics       *PlatformMetrics       `protobuf:"bytes,2,opt,name=metrics,proto3" json:"metrics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -875,7 +876,7 @@ func (*GetPlatformMetricsResponse) Descriptor() ([]byte, []int) {
 	return file_analytics_analytics_service_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *GetPlatformMetricsResponse) GetStatus() *common.Status {
+func (x *GetPlatformMetricsResponse) GetStatus() *common1.Status {
 	if x != nil {
 		return x.Status
 	}
@@ -1398,7 +1399,7 @@ var file_analytics_analytics_service_proto_goTypes = []any{
 	nil,                                // 19: analytics.GetRecommendationsRequest.ContextEntry
 	nil,                                // 20: analytics.Recommendation.MetadataEntry
 	(*common.Timestamp)(nil),           // 21: common.Timestamp
-	(*common.Status)(nil),              // 22: common.Status
+	(*common1.Status)(nil),             // 22: common.Status
 }
 var file_analytics_analytics_service_proto_depIdxs = []int32{
 	18, // 0: analytics.TrackEventRequest.properties:type_name -> analytics.TrackEventRequest.PropertiesEntry

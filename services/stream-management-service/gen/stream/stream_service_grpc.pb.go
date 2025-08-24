@@ -122,7 +122,7 @@ func (c *streamServiceClient) RecordingCompleted(ctx context.Context, in *Record
 }
 
 // StreamServiceServer is the server API for StreamService service.
-// All implementations should embed UnimplementedStreamServiceServer
+// All implementations must embed UnimplementedStreamServiceServer
 // for forward compatibility.
 type StreamServiceServer interface {
 	ValidateStreamKey(context.Context, *ValidateStreamKeyRequest) (*ValidateStreamKeyResponse, error)
@@ -132,9 +132,10 @@ type StreamServiceServer interface {
 	GetActiveStreams(context.Context, *GetActiveStreamsRequest) (*GetActiveStreamsResponse, error)
 	EndStream(context.Context, *EndStreamRequest) (*EndStreamResponse, error)
 	RecordingCompleted(context.Context, *RecordingCompletedRequest) (*RecordingCompletedResponse, error)
+	mustEmbedUnimplementedStreamServiceServer()
 }
 
-// UnimplementedStreamServiceServer should be embedded to have
+// UnimplementedStreamServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -162,7 +163,8 @@ func (UnimplementedStreamServiceServer) EndStream(context.Context, *EndStreamReq
 func (UnimplementedStreamServiceServer) RecordingCompleted(context.Context, *RecordingCompletedRequest) (*RecordingCompletedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RecordingCompleted not implemented")
 }
-func (UnimplementedStreamServiceServer) testEmbeddedByValue() {}
+func (UnimplementedStreamServiceServer) mustEmbedUnimplementedStreamServiceServer() {}
+func (UnimplementedStreamServiceServer) testEmbeddedByValue()                       {}
 
 // UnsafeStreamServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to StreamServiceServer will
