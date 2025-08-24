@@ -1,3 +1,8 @@
+# ====================================
+# 4. User Service main.py Fix
+# services/user-service/app/main.py
+# ====================================
+
 # services/user-service/app/main.py
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +17,7 @@ from app.config.database import engine, Base, get_db
 from app.config.settings import settings
 from app.api.routes import auth, users, health ,stream
 from app.middleware.logging import LoggingMiddleware
-from app.grpc_server.user_service import serve_grpc
+from app.grpc_server.user_service import serve_grpc, grpc_port
 
 # IMPORTANT: Import all models here so they are registered with SQLAlchemy
 from app.models.user import User
@@ -20,12 +25,11 @@ from app.models.auth import RefreshToken
 
 # Global gRPC server reference
 grpc_server = None
-grpc_port = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global grpc_server, grpc_port
+    global grpc_server
 
     # Startup
     print("🚀 Starting User Service...")
@@ -75,10 +79,10 @@ async def lifespan(app: FastAPI):
         import traceback
         print(f"🔍 Full error: {traceback.format_exc()}")
 
-    # Start gRPC server in a separate thread
-    print("🔧 Starting gRPC server...")
+    # Start gRPC server in a separate thread on FIXED PORT 8082
+    print("🔧 Starting gRPC server on port 8082...")
     try:
-        grpc_server = serve_grpc()  # Let it find a free port automatically
+        grpc_server = serve_grpc(port=8082)  # Fixed port
 
         # Start gRPC server in background thread
         def run_grpc():
@@ -91,7 +95,7 @@ async def lifespan(app: FastAPI):
 
         grpc_thread = threading.Thread(target=run_grpc, daemon=True)
         grpc_thread.start()
-        print("✅ gRPC server started successfully")
+        print("✅ gRPC server started successfully on port 8082")
 
     except Exception as e:
         print(f"❌ Failed to start gRPC server: {e}")
@@ -142,7 +146,7 @@ app.include_router(stream.router, prefix="/api/v1/stream", tags=["streaming"])
 
 @app.get("/")
 async def root():
-    global grpc_server, grpc_port
+    global grpc_server
 
     grpc_status = "running" if grpc_server else "not available"
 
@@ -151,11 +155,15 @@ async def root():
         "version": "1.0.0",
         "services": {
             "rest_api": "http://localhost:8000",
-            "grpc": f"localhost:{grpc_port}" if grpc_port else "not available"
+            "grpc": "localhost:8082" if grpc_server else "not available"
         },
         "status": {
             "rest_api": "running",
             "grpc": grpc_status
+        },
+        "instructions": {
+            "test_grpc": "grpcurl -plaintext localhost:8082 list",
+            "stream_validation": "Use /api/v1/stream/validate-stream-key endpoint"
         }
     }
 
@@ -179,12 +187,13 @@ async def get_service_status():
         "version": "1.0.0",
         "status": {
             "rest_api": "running",
-            "grpc_server": "running" if grpc_server else "not available",
+            "grpc_server": "running on port 8082" if grpc_server else "not available",
             "database": db_status
         },
         "endpoints": {
             "rest_api": "http://localhost:8000",
-            "grpc": f"localhost:{grpc_port}" if grpc_port else "not available"
+            "grpc": "localhost:8082" if grpc_server else "not available",
+            "stream_validation": "POST /api/v1/stream/validate-stream-key"
         }
     }
 

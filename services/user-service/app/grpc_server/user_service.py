@@ -1,4 +1,8 @@
+# ====================================
+# 3. User Service gRPC Server Fix
 # services/user-service/app/grpc_server/user_service.py
+# ====================================
+
 import grpc
 import socket
 from concurrent import futures
@@ -106,7 +110,6 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
                         continue  # Skip invalid IDs
             else:
                 # If no specific IDs provided, get all users (with pagination)
-                # You might want to add pagination parameters to the proto definition later
                 all_users = user_repo.get_users(skip=0, limit=100)  # Adjust limit as needed
                 for user in all_users:
                     users.append(self._user_to_proto(user))
@@ -204,20 +207,8 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
             db.close()
 
 
-def find_free_port(start_port: int = 8082, max_port: int = 8092) -> int:
-    """Find a free port starting from start_port"""
-    for port in range(start_port, max_port):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('localhost', port))
-                return port
-        except OSError:
-            continue
-    raise RuntimeError(f"No free port found in range {start_port}-{max_port}")
-
-
-def serve_grpc(port: int = None) -> grpc.Server:
-    """Start the gRPC server with reflection enabled"""
+def serve_grpc(port: int = 8082) -> grpc.Server:
+    """Start the gRPC server with fixed port 8082"""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     # Add the UserService
@@ -231,45 +222,47 @@ def serve_grpc(port: int = None) -> grpc.Server:
     )
     reflection.enable_server_reflection(SERVICE_NAMES, server)
 
-    # Find a free port if the specified port is not available
-    if port is None:
-        port = find_free_port()
-
-    # Try different binding approaches
+    # Fixed port configuration
+    target_port = port
     bind_addresses = [
-        f'localhost:{port}',  # Try localhost first
-        f'127.0.0.1:{port}',  # Try IPv4 explicitly
-        f'0.0.0.0:{port}',  # Try all interfaces
+        f'localhost:{target_port}',
+        f'127.0.0.1:{target_port}',
+        f'0.0.0.0:{target_port}',
     ]
 
     bound = False
-    actual_port = port
+    actual_port = target_port
 
     for addr in bind_addresses:
         try:
+            # Check if port is available first
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                result = s.connect_ex(('localhost', target_port))
+                if result == 0:
+                    print(f"⚠️ Port {target_port} is already in use")
+                    continue
+
             actual_port = server.add_insecure_port(addr)
             print(f"🚀 gRPC server bound to {addr} (port {actual_port})")
             bound = True
             break
-        except RuntimeError as e:
+        except Exception as e:
             print(f"❌ Failed to bind to {addr}: {e}")
             continue
 
-    # If all specific addresses fail, try to find any free port
     if not bound:
-        try:
-            free_port = find_free_port(8082, 8100)
-            actual_port = server.add_insecure_port(f'localhost:{free_port}')
-            print(f"🚀 gRPC server bound to localhost:{free_port} (port {actual_port})")
-            bound = True
-        except Exception as e:
-            print(f"❌ Failed to find any free port: {e}")
-            raise RuntimeError("Failed to start gRPC server - no available ports")
-
-    if not bound:
-        raise RuntimeError("Failed to bind gRPC server to any address")
+        raise RuntimeError(f"Failed to bind gRPC server to port {target_port}")
 
     server.start()
-    print(f"✅ gRPC server started with reflection enabled on port {actual_port}")
+    print(f"✅ User Service gRPC server started with reflection on port {actual_port}")
+    print(f"🔧 Test with: grpcurl -plaintext localhost:{actual_port} list")
+
+    # Store the port globally so main.py can access it
+    global grpc_port
+    grpc_port = actual_port
 
     return server
+
+
+# Global variable to store the actual port
+grpc_port = None
