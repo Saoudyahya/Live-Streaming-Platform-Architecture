@@ -98,7 +98,7 @@ func (c *analyticsServiceClient) GetPlatformMetrics(ctx context.Context, in *Get
 }
 
 // AnalyticsServiceServer is the server API for AnalyticsService service.
-// All implementations should embed UnimplementedAnalyticsServiceServer
+// All implementations must embed UnimplementedAnalyticsServiceServer
 // for forward compatibility.
 type AnalyticsServiceServer interface {
 	TrackEvent(context.Context, *TrackEventRequest) (*TrackEventResponse, error)
@@ -106,9 +106,10 @@ type AnalyticsServiceServer interface {
 	GetStreamAnalytics(context.Context, *GetStreamAnalyticsRequest) (*GetStreamAnalyticsResponse, error)
 	GetRecommendations(context.Context, *GetRecommendationsRequest) (*GetRecommendationsResponse, error)
 	GetPlatformMetrics(context.Context, *GetPlatformMetricsRequest) (*GetPlatformMetricsResponse, error)
+	mustEmbedUnimplementedAnalyticsServiceServer()
 }
 
-// UnimplementedAnalyticsServiceServer should be embedded to have
+// UnimplementedAnalyticsServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -130,7 +131,8 @@ func (UnimplementedAnalyticsServiceServer) GetRecommendations(context.Context, *
 func (UnimplementedAnalyticsServiceServer) GetPlatformMetrics(context.Context, *GetPlatformMetricsRequest) (*GetPlatformMetricsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPlatformMetrics not implemented")
 }
-func (UnimplementedAnalyticsServiceServer) testEmbeddedByValue() {}
+func (UnimplementedAnalyticsServiceServer) mustEmbedUnimplementedAnalyticsServiceServer() {}
+func (UnimplementedAnalyticsServiceServer) testEmbeddedByValue()                          {}
 
 // UnsafeAnalyticsServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to AnalyticsServiceServer will

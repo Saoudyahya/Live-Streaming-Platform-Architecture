@@ -108,7 +108,7 @@ func (c *chatServiceClient) GetChatrooms(ctx context.Context, in *GetChatroomsRe
 }
 
 // ChatServiceServer is the server API for ChatService service.
-// All implementations should embed UnimplementedChatServiceServer
+// All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
 type ChatServiceServer interface {
 	CreateChatroom(context.Context, *CreateChatroomRequest) (*CreateChatroomResponse, error)
@@ -117,9 +117,10 @@ type ChatServiceServer interface {
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
 	GetChatrooms(context.Context, *GetChatroomsRequest) (*GetChatroomsResponse, error)
+	mustEmbedUnimplementedChatServiceServer()
 }
 
-// UnimplementedChatServiceServer should be embedded to have
+// UnimplementedChatServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
@@ -144,7 +145,8 @@ func (UnimplementedChatServiceServer) GetMessages(context.Context, *GetMessagesR
 func (UnimplementedChatServiceServer) GetChatrooms(context.Context, *GetChatroomsRequest) (*GetChatroomsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChatrooms not implemented")
 }
-func (UnimplementedChatServiceServer) testEmbeddedByValue() {}
+func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
+func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
 
 // UnsafeChatServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to ChatServiceServer will

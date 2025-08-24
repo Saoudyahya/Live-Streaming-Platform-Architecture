@@ -9,7 +9,8 @@
 package stream
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
+	common1 "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -998,14 +999,14 @@ type Stream struct {
 	Title           string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	Description     string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	Status          StreamStatus           `protobuf:"varint,6,opt,name=status,proto3,enum=stream.StreamStatus" json:"status,omitempty"`
-	StartedAt       *common.Timestamp      `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	EndedAt         *common.Timestamp      `protobuf:"bytes,8,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
+	StartedAt       *common1.Timestamp     `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	EndedAt         *common1.Timestamp     `protobuf:"bytes,8,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
 	DurationSeconds int64                  `protobuf:"varint,9,opt,name=duration_seconds,json=durationSeconds,proto3" json:"duration_seconds,omitempty"`
 	ViewerCount     int64                  `protobuf:"varint,10,opt,name=viewer_count,json=viewerCount,proto3" json:"viewer_count,omitempty"`
 	RecordingUrl    string                 `protobuf:"bytes,11,opt,name=recording_url,json=recordingUrl,proto3" json:"recording_url,omitempty"`
 	Metadata        *StreamMetadata        `protobuf:"bytes,12,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	CreatedAt       *common.Timestamp      `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *common.Timestamp      `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt       *common1.Timestamp     `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       *common1.Timestamp     `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1082,14 +1083,14 @@ func (x *Stream) GetStatus() StreamStatus {
 	return StreamStatus_STREAM_PENDING
 }
 
-func (x *Stream) GetStartedAt() *common.Timestamp {
+func (x *Stream) GetStartedAt() *common1.Timestamp {
 	if x != nil {
 		return x.StartedAt
 	}
 	return nil
 }
 
-func (x *Stream) GetEndedAt() *common.Timestamp {
+func (x *Stream) GetEndedAt() *common1.Timestamp {
 	if x != nil {
 		return x.EndedAt
 	}
@@ -1124,14 +1125,14 @@ func (x *Stream) GetMetadata() *StreamMetadata {
 	return nil
 }
 
-func (x *Stream) GetCreatedAt() *common.Timestamp {
+func (x *Stream) GetCreatedAt() *common1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *Stream) GetUpdatedAt() *common.Timestamp {
+func (x *Stream) GetUpdatedAt() *common1.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
 	}
@@ -1351,9 +1352,9 @@ const file_stream_stream_service_proto_rawDesc = "" +
 	"\tGetStream\x12\x18.stream.GetStreamRequest\x1a\x19.stream.GetStreamResponse\x12U\n" +
 	"\x10GetActiveStreams\x12\x1f.stream.GetActiveStreamsRequest\x1a .stream.GetActiveStreamsResponse\x12@\n" +
 	"\tEndStream\x12\x18.stream.EndStreamRequest\x1a\x19.stream.EndStreamResponse\x12[\n" +
-	"\x12RecordingCompleted\x12!.stream.RecordingCompletedRequest\x1a\".stream.RecordingCompletedResponseB\x9f\x01\n" +
+	"\x12RecordingCompleted\x12!.stream.RecordingCompletedRequest\x1a\".stream.RecordingCompletedResponseB\xc2\x01\n" +
 	"\n" +
-	"com.streamB\x12StreamServiceProtoP\x01ZEgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/stream\xa2\x02\x03SXX\xaa\x02\x06Stream\xca\x02\x06Stream\xe2\x02\x12Stream\\GPBMetadata\xea\x02\x06Streamb\x06proto3"
+	"com.streamB\x12StreamServiceProtoP\x01Zhgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/stream\xa2\x02\x03SXX\xaa\x02\x06Stream\xca\x02\x06Stream\xe2\x02\x12Stream\\GPBMetadata\xea\x02\x06Streamb\x06proto3"
 
 var (
 	file_stream_stream_service_proto_rawDescOnce sync.Once
@@ -1390,7 +1391,7 @@ var file_stream_stream_service_proto_goTypes = []any{
 	(*StreamMetadata)(nil),             // 17: stream.StreamMetadata
 	nil,                                // 18: stream.StreamMetadata.CustomDataEntry
 	(*common.Status)(nil),              // 19: common.Status
-	(*common.Timestamp)(nil),           // 20: common.Timestamp
+	(*common1.Timestamp)(nil),          // 20: common.Timestamp
 }
 var file_stream_stream_service_proto_depIdxs = []int32{
 	19, // 0: stream.ValidateStreamKeyResponse.status:type_name -> common.Status
