@@ -89,9 +89,9 @@ const file_common_common_proto_rawDesc = "" +
 	"\x06Status\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x18\n" +
-	"\asuccess\x18\x03 \x01(\bR\asuccessB\x98\x01\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccessB\xbb\x01\n" +
 	"\n" +
-	"com.commonB\vCommonProtoP\x01ZEgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common\xa2\x02\x03CXX\xaa\x02\x06Common\xca\x02\x06Common\xe2\x02\x12Common\\GPBMetadata\xea\x02\x06Commonb\x06proto3"
+	"com.commonB\vCommonProtoP\x01Zhgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common\xa2\x02\x03CXX\xaa\x02\x06Common\xca\x02\x06Common\xe2\x02\x12Common\\GPBMetadata\xea\x02\x06Commonb\x06proto3"
 
 var (
 	file_common_common_proto_rawDescOnce sync.Once

@@ -1,7 +1,10 @@
 // proto/user/user_service.proto
+// UPDATED VERSION - Added ValidateStreamKey method
+
 syntax = "proto3";
 
 package user;
+
 option go_package = "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user";
 
 import "common/common.proto";
@@ -12,6 +15,9 @@ service UserService {
   rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
   rpc ValidateUser(ValidateUserRequest) returns (ValidateUserResponse);
   rpc UpdateUserStatus(UpdateUserStatusRequest) returns (UpdateUserStatusResponse);
+
+  // NEW: Stream key validation method
+  rpc ValidateStreamKey(ValidateStreamKeyRequest) returns (ValidateStreamKeyResponse);
 }
 
 message GetUserRequest {
@@ -50,6 +56,28 @@ message UpdateUserStatusRequest {
 
 message UpdateUserStatusResponse {
   common.Status status = 1;
+}
+
+// NEW: Stream key validation messages
+message ValidateStreamKeyRequest {
+  string stream_key = 1;
+  string ip_address = 2;
+  string app_name = 3;
+}
+
+message ValidateStreamKeyResponse {
+  common.Status status = 1;
+  bool is_valid = 2;
+  int64 user_id = 3;
+  string username = 4;
+  StreamPermissions permissions = 5;
+}
+
+message StreamPermissions {
+  bool can_stream = 1;
+  bool can_record = 2;
+  int32 max_bitrate = 3;
+  int32 max_duration_minutes = 4;
 }
 
 message User {

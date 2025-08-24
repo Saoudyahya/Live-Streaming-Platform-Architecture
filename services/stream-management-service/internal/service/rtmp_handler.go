@@ -110,141 +110,18 @@ func (h *RTMPHandler) AuthenticateStream(c *gin.Context) {
 		log.Printf("⚠️ Warning: Could not store stream session: %v", err)
 	}
 
-	// Return success response
+	// Return success response - FIXED: Return proper auth response
 	c.JSON(http.StatusOK, gin.H{
-		"message":   "Stream ended",
-		"stream_id": streamID,
-		"duration":  durationSec,
-		"status":    "ended",
+		"authorized": true,
+		"user_id":    userID,
+		"username":   username,
+		"permissions": gin.H{
+			"can_stream":           true,
+			"can_record":           true,
+			"max_bitrate":          8000,
+			"max_duration_minutes": 240,
+		},
 	})
-}
-
-func (h *RTMPHandler) RecordingCompleted(c *gin.Context) {
-	var req RTMPStreamRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if err := c.ShouldBind(&req); err != nil {
-			log.Printf("❌ Error parsing recording completed request: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
-			return
-		}
-	}
-
-	log.Printf("📹 Recording COMPLETED - Name: %s, File: %s", req.Name, req.File)
-
-	streamKey := h.extractStreamKey(req.Name)
-
-	// Update stream with recording info
-	err := h.streamService.UpdateStreamRecording(streamKey, req.File)
-	if err != nil {
-		log.Printf("❌ Error updating stream recording: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update recording info"})
-		return
-	}
-
-	log.Printf("✅ Recording updated successfully")
-
-	// Parse file size if provided
-	fileSize := int64(0)
-	if req.Size != "" {
-		if s, err := strconv.ParseInt(req.Size, 10, 64); err == nil {
-			fileSize = s
-		}
-	}
-
-	// Parse duration if provided
-	durationSec := int64(0)
-	if req.Duration != "" {
-		if d, err := strconv.ParseInt(req.Duration, 10, 64); err == nil {
-			durationSec = d
-		}
-	}
-
-	// Publish recording completed event
-	event := map[string]interface{}{
-		"event_type":     "recording_completed",
-		"stream_key":     streamKey,
-		"recording_path": req.File,
-		"file_size":      fileSize,
-		"duration":       durationSec,
-		"timestamp":      time.Now().Unix(),
-	}
-
-	if err := h.streamService.PublishEvent(event); err != nil {
-		log.Printf("⚠️ Warning: Could not publish recording completed event: %v", err)
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":       "Recording completed",
-		"recording_url": req.File,
-		"file_size":     fileSize,
-		"status":        "completed",
-	})
-}
-
-func (h *RTMPHandler) HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":    "healthy",
-		"service":   "stream-management",
-		"timestamp": time.Now().Unix(),
-		"version":   "1.0.0",
-		"rtmp":      "ready",
-	})
-}
-
-func (h *RTMPHandler) extractStreamKey(name string) string {
-	streamKey := strings.TrimSpace(name)
-	streamKey = strings.TrimPrefix(streamKey, "/")
-
-	if strings.Contains(streamKey, "/") {
-		parts := strings.Split(streamKey, "/")
-		streamKey = parts[len(parts)-1]
-	}
-
-	return streamKey
-}
-
-func (h *RTMPHandler) GetStreamInfo(c *gin.Context) {
-	streamKey := c.Param("stream_key")
-	if streamKey == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Stream key required"})
-		return
-	}
-
-	// Get session info
-	sessionData, err := h.streamService.GetStreamSession(streamKey)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Stream session not found"})
-		return
-	}
-
-	// Try to get stream details if stream ID is available
-	streamID, ok := sessionData["stream_id"].(string)
-	if ok {
-		c.JSON(http.StatusOK, gin.H{
-			"stream_id": streamID,
-			"session":   sessionData,
-			"status":    "active",
-		})
-		return
-	}
-
-	// Fallback to session data only
-	c.JSON(http.StatusOK, gin.H{
-		"session": sessionData,
-		"status":  "session_only",
-	})
-}H{
-"authorized": true,
-"user_id":    userID,
-"username":   username,
-"permissions": gin.H{
-"can_stream":           true,
-"can_record":           true,
-"max_bitrate":          8000,
-"max_duration_minutes": 240,
-},
-})
 }
 
 func (h *RTMPHandler) validateStreamKey(streamKey, ipAddress, appName string) (bool, int64, string, error) {
@@ -294,19 +171,10 @@ func (h *RTMPHandler) validateStreamKeyHTTP(streamKey, ipAddress string) (bool, 
 	}
 
 	// Final fallback for development
-	log.Printf("🔧 Using development fallback validation")
-	if len(streamKey) >= 10 {
-		log.Printf("✅ Development validation passed for stream key: %s", streamKey)
-		userID := int64(1001)
-		username := fmt.Sprintf("dev_user_%s", streamKey[:8])
-		return true, userID, username, nil
-	}
 
 	log.Printf("❌ Development validation failed for stream key: %s", streamKey)
 	return false, 0, "", nil
 }
-
-// Rest of the methods remain the same...
 
 func (h *RTMPHandler) StreamStarted(c *gin.Context) {
 	var req RTMPStreamRequest
@@ -446,6 +314,145 @@ func (h *RTMPHandler) StreamEnded(c *gin.Context) {
 		log.Printf("⚠️ Warning: Could not cleanup stream session: %v", err)
 	}
 
+	// Publish stream ended event
+	event := map[string]interface{}{
+		"event_type": "stream_ended",
+		"stream_id":  streamID,
+		"timestamp":  time.Now().Unix(),
+		"duration":   durationSec,
+		"metadata": map[string]interface{}{
+			"stream_key": streamKey,
+			"end_reason": "normal",
+		},
+	}
+
+	if err := h.streamService.PublishEvent(event); err != nil {
+		log.Printf("⚠️ Warning: Could not publish stream ended event: %v", err)
+	}
+
 	log.Printf("✅ Stream ended successfully")
 
-	c.JSON(http.StatusOK, gin.
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Stream ended",
+		"stream_id": streamID,
+		"duration":  durationSec,
+		"status":    "ended",
+	})
+}
+
+func (h *RTMPHandler) RecordingCompleted(c *gin.Context) {
+	var req RTMPStreamRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		if err := c.ShouldBind(&req); err != nil {
+			log.Printf("❌ Error parsing recording completed request: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			return
+		}
+	}
+
+	log.Printf("📹 Recording COMPLETED - Name: %s, File: %s", req.Name, req.File)
+
+	streamKey := h.extractStreamKey(req.Name)
+
+	// Update stream with recording info
+	err := h.streamService.UpdateStreamRecording(streamKey, req.File)
+	if err != nil {
+		log.Printf("❌ Error updating stream recording: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update recording info"})
+		return
+	}
+
+	log.Printf("✅ Recording updated successfully")
+
+	// Parse file size if provided
+	fileSize := int64(0)
+	if req.Size != "" {
+		if s, err := strconv.ParseInt(req.Size, 10, 64); err == nil {
+			fileSize = s
+		}
+	}
+
+	// Parse duration if provided
+	durationSec := int64(0)
+	if req.Duration != "" {
+		if d, err := strconv.ParseInt(req.Duration, 10, 64); err == nil {
+			durationSec = d
+		}
+	}
+
+	// Publish recording completed event
+	event := map[string]interface{}{
+		"event_type":     "recording_completed",
+		"stream_key":     streamKey,
+		"recording_path": req.File,
+		"file_size":      fileSize,
+		"duration":       durationSec,
+		"timestamp":      time.Now().Unix(),
+	}
+
+	if err := h.streamService.PublishEvent(event); err != nil {
+		log.Printf("⚠️ Warning: Could not publish recording completed event: %v", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Recording completed",
+		"recording_url": req.File,
+		"file_size":     fileSize,
+		"status":        "completed",
+	})
+}
+
+func (h *RTMPHandler) GetStreamInfo(c *gin.Context) {
+	streamKey := c.Param("stream_key")
+	if streamKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Stream key required"})
+		return
+	}
+
+	// Get session info
+	sessionData, err := h.streamService.GetStreamSession(streamKey)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Stream session not found"})
+		return
+	}
+
+	// Try to get stream details if stream ID is available
+	streamID, ok := sessionData["stream_id"].(string)
+	if ok {
+		c.JSON(http.StatusOK, gin.H{
+			"stream_id": streamID,
+			"session":   sessionData,
+			"status":    "active",
+		})
+		return
+	}
+
+	// Fallback to session data only
+	c.JSON(http.StatusOK, gin.H{
+		"session": sessionData,
+		"status":  "session_only",
+	})
+}
+
+func (h *RTMPHandler) HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "healthy",
+		"service":   "stream-management",
+		"timestamp": time.Now().Unix(),
+		"version":   "1.0.0",
+		"rtmp":      "ready",
+	})
+}
+
+func (h *RTMPHandler) extractStreamKey(name string) string {
+	streamKey := strings.TrimSpace(name)
+	streamKey = strings.TrimPrefix(streamKey, "/")
+
+	if strings.Contains(streamKey, "/") {
+		parts := strings.Split(streamKey, "/")
+		streamKey = parts[len(parts)-1]
+	}
+
+	return streamKey
+}

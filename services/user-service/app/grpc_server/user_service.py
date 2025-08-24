@@ -1,7 +1,5 @@
-# ====================================
-# 3. User Service gRPC Server Fix
 # services/user-service/app/grpc_server/user_service.py
-# ====================================
+# ENHANCED VERSION - Added stream key validation method
 
 import grpc
 import socket
@@ -56,6 +54,53 @@ class UserServicer(user_service_pb2_grpc.UserServiceServicer):
             created_at=self._datetime_to_timestamp(user.created_at),
             last_seen=self._datetime_to_timestamp(user.updated_at or user.created_at)
         )
+
+    def ValidateStreamKey(self, request, context):
+        """Validate a stream key and return user information - NEW METHOD"""
+        db = self._get_db()
+        try:
+            print(f"🔑 gRPC ValidateStreamKey called: {request.stream_key} from IP: {request.ip_address}")
+
+            # Find user by stream key
+            user = db.query(User).filter(User.stream_key == request.stream_key).first()
+
+            if not user:
+                print(f"❌ No user found with stream key: {request.stream_key}")
+                return user_service_pb2.ValidateStreamKeyResponse(
+                    status=self._create_status(False, 404, "Invalid stream key"),
+                    is_valid=False
+                )
+
+            if not user.is_active:
+                print(f"❌ User account inactive: {user.username}")
+                return user_service_pb2.ValidateStreamKeyResponse(
+                    status=self._create_status(False, 403, "User account is inactive"),
+                    is_valid=False
+                )
+
+            print(f"✅ Stream key validated for user {user.username} (ID: {user.id})")
+
+            return user_service_pb2.ValidateStreamKeyResponse(
+                status=self._create_status(True, 200, "Stream key is valid"),
+                is_valid=True,
+                user_id=user.id,
+                username=user.username,
+                permissions=user_service_pb2.StreamPermissions(
+                    can_stream=True,
+                    can_record=True,
+                    max_bitrate=8000,  # 8 Mbps
+                    max_duration_minutes=240  # 4 hours
+                )
+            )
+
+        except Exception as e:
+            print(f"💥 Error in ValidateStreamKey: {e}")
+            return user_service_pb2.ValidateStreamKeyResponse(
+                status=self._create_status(False, 500, f"Internal server error: {str(e)}"),
+                is_valid=False
+            )
+        finally:
+            db.close()
 
     def GetUser(self, request, context):
         """Get a single user by ID"""
@@ -254,8 +299,9 @@ def serve_grpc(port: int = 8082) -> grpc.Server:
         raise RuntimeError(f"Failed to bind gRPC server to port {target_port}")
 
     server.start()
-    print(f"✅ User Service gRPC server started with reflection on port {actual_port}")
-    print(f"🔧 Test with: grpcurl -plaintext localhost:{actual_port} list")
+    print("✅ User Service gRPC server started with reflection on port {actual_port}")
+    print("🔧 Test with: grpcurl -plaintext localhost:{actual_port} list")
+    print("🔧 Test stream key validation: grpcurl -plaintext -d '{\"stream_key\":\"your_key\",\"ip_address\":\"127.0.0.1\"}' localhost:{actual_port} user.UserService.ValidateStreamKey")
 
     # Store the port globally so main.py can access it
     global grpc_port

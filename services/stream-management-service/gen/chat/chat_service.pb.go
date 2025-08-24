@@ -7,8 +7,7 @@
 package chat
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
-	common1 "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -739,8 +738,8 @@ type Chatroom struct {
 	CreatorId     string                 `protobuf:"bytes,4,opt,name=creator_id,json=creatorId,proto3" json:"creator_id,omitempty"`
 	IsPrivate     bool                   `protobuf:"varint,5,opt,name=is_private,json=isPrivate,proto3" json:"is_private,omitempty"`
 	MemberIds     []string               `protobuf:"bytes,6,rep,name=member_ids,json=memberIds,proto3" json:"member_ids,omitempty"`
-	CreatedAt     *common1.Timestamp     `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *common1.Timestamp     `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt     *common.Timestamp      `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *common.Timestamp      `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -817,14 +816,14 @@ func (x *Chatroom) GetMemberIds() []string {
 	return nil
 }
 
-func (x *Chatroom) GetCreatedAt() *common1.Timestamp {
+func (x *Chatroom) GetCreatedAt() *common.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *Chatroom) GetUpdatedAt() *common1.Timestamp {
+func (x *Chatroom) GetUpdatedAt() *common.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
 	}
@@ -839,7 +838,7 @@ type Message struct {
 	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
 	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
 	Type          MessageType            `protobuf:"varint,6,opt,name=type,proto3,enum=chat.MessageType" json:"type,omitempty"`
-	CreatedAt     *common1.Timestamp     `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt     *common.Timestamp      `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	IsEdited      bool                   `protobuf:"varint,8,opt,name=is_edited,json=isEdited,proto3" json:"is_edited,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -917,7 +916,7 @@ func (x *Message) GetType() MessageType {
 	return MessageType_TEXT
 }
 
-func (x *Message) GetCreatedAt() *common1.Timestamp {
+func (x *Message) GetCreatedAt() *common.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
@@ -1020,8 +1019,8 @@ const file_chat_chat_service_proto_rawDesc = "" +
 	"\rLeaveChatroom\x12\x1a.chat.LeaveChatroomRequest\x1a\x1b.chat.LeaveChatroomResponse\x12B\n" +
 	"\vSendMessage\x12\x18.chat.SendMessageRequest\x1a\x19.chat.SendMessageResponse\x12B\n" +
 	"\vGetMessages\x12\x18.chat.GetMessagesRequest\x1a\x19.chat.GetMessagesResponse\x12E\n" +
-	"\fGetChatrooms\x12\x19.chat.GetChatroomsRequest\x1a\x1a.chat.GetChatroomsResponseB\x91\x01\n" +
-	"\bcom.chatB\x10ChatServiceProtoP\x01ZCgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/chat\xa2\x02\x03CXX\xaa\x02\x04Chat\xca\x02\x04Chat\xe2\x02\x10Chat\\GPBMetadata\xea\x02\x04Chatb\x06proto3"
+	"\fGetChatrooms\x12\x19.chat.GetChatroomsRequest\x1a\x1a.chat.GetChatroomsResponseB\xb4\x01\n" +
+	"\bcom.chatB\x10ChatServiceProtoP\x01Zfgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/chat\xa2\x02\x03CXX\xaa\x02\x04Chat\xca\x02\x04Chat\xe2\x02\x10Chat\\GPBMetadata\xea\x02\x04Chatb\x06proto3"
 
 var (
 	file_chat_chat_service_proto_rawDescOnce sync.Once
@@ -1054,7 +1053,7 @@ var file_chat_chat_service_proto_goTypes = []any{
 	(*Chatroom)(nil),               // 13: chat.Chatroom
 	(*Message)(nil),                // 14: chat.Message
 	(*common.Status)(nil),          // 15: common.Status
-	(*common1.Timestamp)(nil),      // 16: common.Timestamp
+	(*common.Timestamp)(nil),       // 16: common.Timestamp
 }
 var file_chat_chat_service_proto_depIdxs = []int32{
 	15, // 0: chat.CreateChatroomResponse.status:type_name -> common.Status

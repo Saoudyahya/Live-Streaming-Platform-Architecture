@@ -10,8 +10,7 @@
 package user
 
 import (
-	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/common"
-	common1 "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
+	common "github.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -691,8 +690,8 @@ type User struct {
 	DisplayName   string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	AvatarUrl     string                 `protobuf:"bytes,5,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	Status        UserStatus             `protobuf:"varint,6,opt,name=status,proto3,enum=user.UserStatus" json:"status,omitempty"`
-	CreatedAt     *common1.Timestamp     `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastSeen      *common1.Timestamp     `protobuf:"bytes,8,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	CreatedAt     *common.Timestamp      `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastSeen      *common.Timestamp      `protobuf:"bytes,8,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -769,14 +768,14 @@ func (x *User) GetStatus() UserStatus {
 	return UserStatus_OFFLINE
 }
 
-func (x *User) GetCreatedAt() *common1.Timestamp {
+func (x *User) GetCreatedAt() *common.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-func (x *User) GetLastSeen() *common1.Timestamp {
+func (x *User) GetLastSeen() *common.Timestamp {
 	if x != nil {
 		return x.LastSeen
 	}
@@ -856,8 +855,8 @@ const file_user_user_service_proto_rawDesc = "" +
 	"\bGetUsers\x12\x15.user.GetUsersRequest\x1a\x16.user.GetUsersResponse\x12E\n" +
 	"\fValidateUser\x12\x19.user.ValidateUserRequest\x1a\x1a.user.ValidateUserResponse\x12Q\n" +
 	"\x10UpdateUserStatus\x12\x1d.user.UpdateUserStatusRequest\x1a\x1e.user.UpdateUserStatusResponse\x12T\n" +
-	"\x11ValidateStreamKey\x12\x1e.user.ValidateStreamKeyRequest\x1a\x1f.user.ValidateStreamKeyResponseB\x91\x01\n" +
-	"\bcom.userB\x10UserServiceProtoP\x01ZCgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/gen/user\xa2\x02\x03UXX\xaa\x02\x04User\xca\x02\x04User\xe2\x02\x10User\\GPBMetadata\xea\x02\x04Userb\x06proto3"
+	"\x11ValidateStreamKey\x12\x1e.user.ValidateStreamKeyRequest\x1a\x1f.user.ValidateStreamKeyResponseB\xb4\x01\n" +
+	"\bcom.userB\x10UserServiceProtoP\x01Zfgithub.com/Saoudyahya/Live-Streaming-Platform-Architecture/services/stream-management-service/gen/user\xa2\x02\x03UXX\xaa\x02\x04User\xca\x02\x04User\xe2\x02\x10User\\GPBMetadata\xea\x02\x04Userb\x06proto3"
 
 var (
 	file_user_user_service_proto_rawDescOnce sync.Once
@@ -888,7 +887,7 @@ var file_user_user_service_proto_goTypes = []any{
 	(*StreamPermissions)(nil),         // 11: user.StreamPermissions
 	(*User)(nil),                      // 12: user.User
 	(*common.Status)(nil),             // 13: common.Status
-	(*common1.Timestamp)(nil),         // 14: common.Timestamp
+	(*common.Timestamp)(nil),          // 14: common.Timestamp
 }
 var file_user_user_service_proto_depIdxs = []int32{
 	13, // 0: user.GetUserResponse.status:type_name -> common.Status
